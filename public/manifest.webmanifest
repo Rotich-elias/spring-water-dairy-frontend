@@ -1,0 +1,12 @@
+{
+  "name": "Spring Water Dairy",
+  "short_name": "SWD",
+  "description": "Herd, milk, breeding and health management for the farm.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#072019",
+  "theme_color": "#072019",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
