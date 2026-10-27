@@ -113,5 +113,5 @@ export function useAnimals() {
     return res.data.data;
   }
 
-  return { list, create, get, update, move, exit, destroy, timeline, lineage, lookup };
+  return { list, create, importCsv, get, update, move, exit, destroy, timeline, lineage, lookup };
 }
