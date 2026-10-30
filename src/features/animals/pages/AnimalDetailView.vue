@@ -6,13 +6,14 @@ import { useAnimals } from "@/features/animals/api/animals";
 import { formatAge } from "@/features/animals/age";
 import { api, type LookupRow } from "@/api";
 import { useAuthStore } from "@/stores/auth";
-import type { Animal } from "@/features/animals/types";
+import type { Animal, AnimalImage } from "@/features/animals/types";
 
 const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const { t } = useI18n();
-const { get, move, exit, timeline, lineage, update } = useAnimals();
+const { get, move, exit, timeline, lineage, update, uploadImage, setPrimaryImage, deleteImage } =
+  useAnimals();
 
 const id = computed(() => Number(route.params.id));
 const animal = ref<Animal | null>(null);
@@ -67,6 +68,10 @@ const editForm = ref({
 const moveError = ref("");
 const exitError = ref("");
 const editError = ref("");
+const imageInput = ref<HTMLInputElement | null>(null);
+const imageUploading = ref(false);
+const imageBusyId = ref<number | null>(null);
+const imageError = ref("");
 
 function formatDate(value: string | undefined | null): string {
   if (!value) return "—";
@@ -148,6 +153,11 @@ const overviewItems = computed(() => {
     { label: "Withholding", value: a.in_withholding ? "Yes" : "No" },
     { label: "Last updated", value: formatDateTime(a.updated_at) },
   ];
+});
+
+const primaryImage = computed<AnimalImage | null>(() => {
+  const images = animal.value?.images ?? [];
+  return images.find((image) => image.is_primary) ?? images[0] ?? null;
 });
 
 const canMove = computed(() => auth.hasPermission("animals.update"));
@@ -272,6 +282,91 @@ async function handleExit() {
   }
 }
 
+const imageMimeTypes = ["image/jpeg", "image/png", "image/webp"];
+const imageMaxBytes = 5 * 1024 * 1024;
+
+function imageErrorMessage(e: any): string {
+  const fields = e.response?.data?.error?.fields ?? {};
+  const first = Object.values(fields).flat()[0];
+  if (typeof first === "string") {
+    return first;
+  }
+
+  return e.response?.data?.error?.message ?? t("errors.unexpected");
+}
+
+async function refreshImages(): Promise<void> {
+  if (!animal.value) return;
+
+  const res = await api.get<{ data: AnimalImage[] }>("images", {
+    params: { imageable_type: "animal", imageable_id: animal.value.id },
+  });
+  animal.value.images = res.data.data;
+}
+
+function openImagePicker(): void {
+  imageError.value = "";
+  imageInput.value?.click();
+}
+
+async function handleImageSelected(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = "";
+  if (!file || !animal.value) return;
+
+  if (!imageMimeTypes.includes(file.type)) {
+    imageError.value = "Choose a JPEG, PNG or WebP image.";
+    return;
+  }
+
+  if (file.size > imageMaxBytes) {
+    imageError.value = "Images must be 5 MB or smaller.";
+    return;
+  }
+
+  imageUploading.value = true;
+  imageError.value = "";
+  try {
+    await uploadImage(animal.value.id, file);
+    await refreshImages();
+  } catch (e: any) {
+    imageError.value = imageErrorMessage(e);
+  } finally {
+    imageUploading.value = false;
+  }
+}
+
+async function handleSetPrimaryImage(image: AnimalImage): Promise<void> {
+  if (image.is_primary) return;
+
+  imageBusyId.value = image.id;
+  imageError.value = "";
+  try {
+    await setPrimaryImage(image.id);
+    await refreshImages();
+  } catch (e: any) {
+    imageError.value = imageErrorMessage(e);
+  } finally {
+    imageBusyId.value = null;
+  }
+}
+
+async function handleRemoveImage(image: AnimalImage): Promise<void> {
+  if (!window.confirm("Remove this picture?")) return;
+
+  imageBusyId.value = image.id;
+  imageError.value = "";
+  try {
+    await deleteImage(image.id);
+    await refreshImages();
+  } catch (e: any) {
+    imageError.value = imageErrorMessage(e);
+  } finally {
+    imageBusyId.value = null;
+  }
+}
+
 onMounted(load);
 </script>
 
@@ -316,8 +411,14 @@ onMounted(load);
     <div class="card mb-6">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div class="flex items-center gap-3">
-          <div class="w-16 h-16 rounded-2xl bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-xl">
-            {{ animal.ear_tag.charAt(0) }}
+          <div class="w-16 h-16 shrink-0 overflow-hidden rounded-2xl bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-xl">
+            <img
+              v-if="primaryImage"
+              :src="primaryImage.url"
+              :alt="animal.ear_tag"
+              class="h-full w-full object-cover"
+            />
+            <span v-else>{{ animal.ear_tag.charAt(0) }}</span>
           </div>
           <div>
             <h1 class="text-2xl font-bold text-slate-900">{{ animal.ear_tag }}</h1>
@@ -488,6 +589,75 @@ onMounted(load);
             Parity, days in milk, reproductive status and withholding are calculated from
             calvings, breeding and health records.
           </p>
+
+          <div class="border-t border-slate-100 pt-3">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="label mb-0">Pictures</p>
+                <p class="text-xs text-slate-500">JPEG, PNG or WebP · up to 5 MB</p>
+              </div>
+              <button
+                type="button"
+                class="btn-outline btn-sm"
+                :disabled="imageUploading"
+                @click="openImagePicker"
+              >
+                {{ imageUploading ? "Uploading…" : "Attach picture" }}
+              </button>
+            </div>
+            <input
+              ref="imageInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              class="hidden"
+              @change="handleImageSelected"
+            />
+            <p v-if="imageError" class="mt-2 p-2 rounded bg-safety-50 text-safety-600 text-xs">
+              {{ imageError }}
+            </p>
+            <p v-if="!(animal?.images ?? []).length" class="mt-2 text-xs text-slate-500">
+              No pictures attached yet.
+            </p>
+            <div v-else class="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              <div
+                v-for="image in animal?.images ?? []"
+                :key="image.id"
+                class="overflow-hidden rounded-xl border border-slate-200"
+              >
+                <div class="relative">
+                  <img
+                    :src="image.url"
+                    :alt="image.original_name ?? animal?.ear_tag"
+                    class="h-24 w-full object-cover"
+                  />
+                  <span
+                    v-if="image.is_primary"
+                    class="absolute left-1 top-1 rounded bg-teal-600 px-1.5 py-0.5 text-[10px] font-semibold text-white"
+                  >
+                    Primary
+                  </span>
+                </div>
+                <div class="flex gap-1 p-1">
+                  <button
+                    type="button"
+                    class="btn-ghost btn-sm flex-1"
+                    :disabled="image.is_primary || imageBusyId === image.id"
+                    @click="handleSetPrimaryImage(image)"
+                  >
+                    Primary
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-ghost btn-sm flex-1 text-safety-600"
+                    :disabled="imageBusyId === image.id"
+                    @click="handleRemoveImage(image)"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="flex justify-end gap-2 pt-1">
             <button type="button" class="btn-outline" @click="showEdit = false">Cancel</button>
             <button type="submit" class="btn-primary" :disabled="editLoading">

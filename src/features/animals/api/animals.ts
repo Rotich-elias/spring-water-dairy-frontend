@@ -1,5 +1,5 @@
 import { api, type Paginated, type LookupRow } from "@/api";
-import type { Animal } from "@/features/animals/types";
+import type { Animal, AnimalImage } from "@/features/animals/types";
 
 export interface AnimalFilters {
   page?: number;
@@ -113,5 +113,46 @@ export function useAnimals() {
     return res.data.data;
   }
 
-  return { list, create, importCsv, get, update, move, exit, destroy, timeline, lineage, lookup };
+  async function uploadImage(id: number, file: File, isPrimary = false) {
+    const formData = new FormData();
+    formData.append("imageable_type", "animal");
+    formData.append("imageable_id", String(id));
+    formData.append("image", file);
+    if (isPrimary) {
+      formData.append("is_primary", "1");
+    }
+
+    const res = await api.post<{ data: AnimalImage }>("images", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data.data;
+  }
+
+  async function setPrimaryImage(imageId: number, isPrimary = true) {
+    const res = await api.patch<{ data: AnimalImage }>(`/images/${imageId}`, {
+      is_primary: isPrimary,
+    });
+    return res.data.data;
+  }
+
+  async function deleteImage(imageId: number) {
+    await api.delete(`/images/${imageId}`);
+  }
+
+  return {
+    list,
+    create,
+    importCsv,
+    get,
+    update,
+    move,
+    exit,
+    destroy,
+    timeline,
+    lineage,
+    lookup,
+    uploadImage,
+    setPrimaryImage,
+    deleteImage,
+  };
 }

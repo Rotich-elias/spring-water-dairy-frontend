@@ -1,3 +1,17 @@
+export interface AnimalImage {
+  id: number;
+  imageable_type: string;
+  imageable_id: number;
+  url: string;
+  original_name?: string | null;
+  mime_type?: string | null;
+  size?: number | null;
+  is_primary: boolean;
+  uploaded_by?: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface Animal {
   id: number;
   client_uuid?: string;
@@ -23,6 +37,7 @@ export interface Animal {
   exit_price?: number;
   dam_id?: number;
   sire_id?: number;
+  images?: AnimalImage[];
   version: number;
   created_at?: string;
   updated_at?: string;
