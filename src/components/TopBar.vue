@@ -11,6 +11,7 @@ import {
   LogOut,
   Settings,
 } from "lucide-vue-next";
+import { readImpersonation } from "@/api";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { navGroups } from "@/app/navigation";
@@ -24,7 +25,8 @@ const { t, locale } = useI18n();
 const menuOpen = ref(false);
 const menuRef = ref<HTMLElement | null>(null);
 
-const isHome = computed(() => route.name === "home");
+const platformOnly = computed(() => auth.isPlatformAdmin && !readImpersonation());
+const isHome = computed(() => route.name === (platformOnly.value ? "seller" : "home"));
 const showBack = computed(() => !isHome.value);
 
 const title = computed(() => {
@@ -83,7 +85,7 @@ function goBack(): void {
   if (window.history.length > 1) {
     router.back();
   } else {
-    void router.push({ name: "home" });
+    void router.push({ name: platformOnly.value ? "seller" : "home" });
   }
 }
 
@@ -123,7 +125,7 @@ onUnmounted(() => document.removeEventListener("click", handleOutsideClick));
         <h1 class="truncate text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
           {{ title }}
         </h1>
-        <p class="mt-0.5 truncate text-[11px] text-slate-500">
+        <p v-if="!platformOnly" class="mt-0.5 truncate text-[11px] text-slate-500">
           {{ t("shell.active_workspace") }}: {{ settingsStore.farmName }}
         </p>
       </div>

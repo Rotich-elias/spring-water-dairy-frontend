@@ -3,6 +3,7 @@ import { computed, onUnmounted, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Grid2x2, X } from "lucide-vue-next";
+import { readImpersonation } from "@/api";
 import { useAuthStore } from "@/stores/auth";
 import {
   bottomNavItems,
@@ -18,7 +19,14 @@ const { t } = useI18n();
 
 const sheetOpen = ref(false);
 
+// Platform Admins work in the Seller Console, not in a single farm workspace.
+const platformOnly = computed(() => auth.isPlatformAdmin && !readImpersonation());
+
 function canAccess(item: NavItem): boolean {
+  if (platformOnly.value) {
+    return item.name === "seller";
+  }
+
   if (item.roles && item.roles.length > 0) {
     if (!item.roles.includes(String(auth.role ?? ""))) {
       return false;

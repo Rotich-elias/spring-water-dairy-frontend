@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Building2, Droplets, LogOut, Wifi } from "lucide-vue-next";
+import { readImpersonation } from "@/api";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { isNavActive, navGroups, type NavItem } from "@/app/navigation";
@@ -22,7 +23,15 @@ const initials = computed(() => {
     .join("");
 });
 
+// A Platform Admin has no farm workspace of their own. Only the Seller
+// Console belongs in the sidebar; during impersonation the farm menu returns.
+const platformOnly = computed(() => auth.isPlatformAdmin && !readImpersonation());
+
 function canAccess(item: NavItem): boolean {
+  if (platformOnly.value) {
+    return item.name === "seller";
+  }
+
   if (item.roles && item.roles.length > 0) {
     if (!item.roles.includes(String(auth.role ?? ""))) {
       return false;
@@ -60,7 +69,7 @@ async function logout(): Promise<void> {
     </div>
 
     <router-link
-      :to="{ name: 'home' }"
+      :to="{ name: platformOnly ? 'seller' : 'home' }"
       class="relative flex items-center gap-3 px-5 pb-4 pt-7"
       :aria-label="t('app.name')"
     >
@@ -81,6 +90,7 @@ async function logout(): Promise<void> {
 
     <!-- The active farm is workspace context, distinct from the platform brand. -->
     <div
+      v-if="!platformOnly"
       class="relative mx-4 mb-2 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
     >
       <Building2 :size="15" class="shrink-0 text-brand-300" />

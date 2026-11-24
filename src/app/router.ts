@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
+import { readImpersonation } from "@/api";
 import { useAuthStore } from "@/stores/auth";
 
 export type Role =
@@ -282,13 +283,22 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore();
+  // While impersonating, the user is acting inside a farm as its Owner, so
+  // farm routes stay available even though the stored role is Platform Admin.
+  const platformOnly = auth.isPlatformAdmin && !readImpersonation();
 
   if (to.name === "landing" && auth.isAuthenticated) {
-    return next({ name: "home" });
+    return next({ name: platformOnly ? "seller" : "home" });
   }
 
   if (to.meta?.requiresAuth && !auth.isAuthenticated) {
     return next({ name: "login", query: { redirect: String(to.fullPath) } });
+  }
+
+  // Platform Admins have no farm workspace; the farm Overview would otherwise
+  // call tenant-scoped endpoints and show a generic "Something went wrong".
+  if (platformOnly && to.meta?.requiresAuth && to.name !== "seller") {
+    return next({ name: "seller" });
   }
 
   if (to.meta?.permission && !auth.hasPermission(to.meta.permission as string)) {

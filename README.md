@@ -58,6 +58,8 @@ npm run preview
   to `/dashboard`.
 - `/seller` is guarded by `meta.roles: ["Platform Admin"]`. Other roles are sent to the
   dashboard with a friendly notice.
+- A Platform Admin has no farm workspace: farm navigation is hidden and farm routes
+  redirect to `/seller`. During impersonation, farm navigation and pages are available.
 - While impersonating a farm, `/seller/*` calls keep using the Platform Admin token and
   farm calls use the short-lived impersonation token, so seller actions never fail with
   a farm user's 403. Token changes are synced across open tabs.

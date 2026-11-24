@@ -77,6 +77,7 @@ export const navGroups: NavGroup[] = [
 
 /** The four main destinations shown directly in the mobile tab bar. */
 export const bottomNavItems: NavItem[] = [
+  { name: "seller", labelKey: "nav.seller_console", icon: LayoutDashboard, roles: ["Platform Admin"] },
   { name: "home", labelKey: "nav.overview", icon: Home },
   { name: "animals", labelKey: "nav.animals", icon: Beef, permission: "animals.view" },
   { name: "milk.session", activePrefix: "milk", labelKey: "nav.milk", icon: Milk, permission: "milk.view" },
