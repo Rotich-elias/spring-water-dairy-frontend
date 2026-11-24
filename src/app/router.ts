@@ -236,6 +236,16 @@ const routes: RouteRecordRaw[] = [
     },
   },
   {
+    path: "/admin/payments",
+    name: "admin.payments",
+    component: () => import("@/features/billing/pages/PaymentsView.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "billing.view",
+      title: "Payment history",
+    },
+  },
+  {
     path: "/farms",
     name: "tenants",
     component: () => import("@/features/tenants/pages/TenantsView.vue"),

@@ -12,6 +12,11 @@ import {
   type SiteInfoPayload,
 } from "@/api";
 import {
+  getSellerPayments,
+  type PaymentHistoryFilters,
+  type PaymentHistoryResponse,
+} from "@/features/billing/api/payments";
+import {
   endImpersonation,
   getImpersonations,
   getInquiries,
@@ -44,6 +49,8 @@ export const useSellerStore = defineStore("seller", () => {
   const farms = ref<SellerFarm[]>([]);
   const inquiries = ref<SellerInquiry[]>([]);
   const impersonations = ref<SellerImpersonation[]>([]);
+  const payments = ref<PaymentHistoryResponse | null>(null);
+  const paymentFilters = ref<PaymentHistoryFilters>({ page: 1, per_page: 15 });
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -62,6 +69,7 @@ export const useSellerStore = defineStore("seller", () => {
       loadFarms(),
       loadInquiries(),
       loadImpersonations(),
+      loadPayments(),
     ]);
     loading.value = false;
   }
@@ -120,6 +128,22 @@ export const useSellerStore = defineStore("seller", () => {
     } catch (e: unknown) {
       fail(e);
     }
+  }
+
+  async function loadPayments(filters?: PaymentHistoryFilters): Promise<void> {
+    if (filters) {
+      paymentFilters.value = filters;
+    }
+
+    try {
+      payments.value = await getSellerPayments(paymentFilters.value);
+    } catch (e: unknown) {
+      fail(e);
+    }
+  }
+
+  function setPaymentError(message: string | null): void {
+    error.value = message;
   }
 
   async function saveSite(payload: SiteInfoPayload): Promise<boolean> {
@@ -192,6 +216,8 @@ export const useSellerStore = defineStore("seller", () => {
     farms,
     inquiries,
     impersonations,
+    payments,
+    paymentFilters,
     loading,
     error,
     refreshAll,
@@ -202,6 +228,8 @@ export const useSellerStore = defineStore("seller", () => {
     loadFarms,
     loadInquiries,
     loadImpersonations,
+    loadPayments,
+    setPaymentError,
     saveSite,
     beginImpersonation,
     returnToSellerConsole,

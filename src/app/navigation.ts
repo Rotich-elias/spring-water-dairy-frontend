@@ -70,6 +70,7 @@ export const navGroups: NavGroup[] = [
       { name: "admin.settings", labelKey: "nav.settings", icon: Settings, permission: "settings.update" },
       { name: "admin.appearance", labelKey: "nav.appearance", icon: Palette, permission: "appearance.update" },
       { name: "admin.billing", labelKey: "nav.billing", icon: CreditCard, permission: "billing.view" },
+      { name: "admin.payments", labelKey: "nav.payments", icon: BarChart3, permission: "billing.view" },
       { name: "admin.lookups", labelKey: "nav.lookups", icon: Database, permission: "lookups.view" },
     ],
   },

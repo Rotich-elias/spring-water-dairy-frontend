@@ -2,6 +2,7 @@
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import {
+  BarChart3,
   Building2,
   CreditCard,
   ExternalLink,
@@ -18,6 +19,7 @@ import SellerSiteForm from "@/features/seller/components/SellerSiteForm.vue";
 import SellerContentForm from "@/features/seller/components/SellerContentForm.vue";
 import SellerPlans from "@/features/seller/components/SellerPlans.vue";
 import SellerPlanRequests from "@/features/seller/components/SellerPlanRequests.vue";
+import SellerPayments from "@/features/seller/components/SellerPayments.vue";
 import SellerFarms from "@/features/seller/components/SellerFarms.vue";
 import SellerInquiries from "@/features/seller/components/SellerInquiries.vue";
 
@@ -30,6 +32,7 @@ const tabs = [
   { id: "content", labelKey: "seller.tabs.content", icon: FileText },
   { id: "plans", labelKey: "seller.tabs.plans", icon: CreditCard },
   { id: "plan_requests", labelKey: "seller.tabs.plan_requests", icon: ReceiptText },
+  { id: "payments", labelKey: "seller.tabs.payments", icon: BarChart3 },
   { id: "farms", labelKey: "seller.tabs.farms", icon: Building2 },
   { id: "inquiries", labelKey: "seller.tabs.inquiries", icon: Inbox },
 ];
@@ -94,6 +97,7 @@ onMounted(() => {
     <SellerContentForm v-else-if="activeTab === 'content'" />
     <SellerPlans v-else-if="activeTab === 'plans'" />
     <SellerPlanRequests v-else-if="activeTab === 'plan_requests'" />
+    <SellerPayments v-else-if="activeTab === 'payments'" />
     <SellerFarms v-else-if="activeTab === 'farms'" />
     <SellerInquiries v-else />
   </div>

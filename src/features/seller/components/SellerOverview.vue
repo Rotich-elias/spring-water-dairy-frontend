@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 import {
   ArrowRight,
+  BarChart3,
   Building2,
   CreditCard,
   Eye,
@@ -53,6 +54,7 @@ const quickLinks = [
   { tab: "site", labelKey: "seller.tabs.site", icon: LayoutDashboard },
   { tab: "content", labelKey: "seller.tabs.content", icon: Layers3 },
   { tab: "plans", labelKey: "seller.tabs.plans", icon: CreditCard },
+  { tab: "payments", labelKey: "seller.tabs.payments", icon: BarChart3 },
   { tab: "farms", labelKey: "seller.tabs.farms", icon: Building2 },
   { tab: "inquiries", labelKey: "seller.tabs.inquiries", icon: Inbox },
 ];
