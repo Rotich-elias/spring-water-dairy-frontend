@@ -5,6 +5,7 @@ import {
   IMPERSONATION_KEY,
   readImpersonation,
   SELLER_TOKEN_KEY,
+  TENANT_KEY,
   TOKEN_KEY,
   type Plan,
   type SiteInfoPayload,
@@ -138,6 +139,9 @@ export const useSellerStore = defineStore("seller", () => {
       }),
     );
     localStorage.setItem(TOKEN_KEY, result.token);
+    // The impersonated user belongs to this farm, so make it the active
+    // workspace immediately instead of inheriting a stale selection.
+    localStorage.setItem(TENANT_KEY, String(result.tenant.id));
   }
 
   /** Return from an impersonated farm: restore the seller user, end the
@@ -162,6 +166,7 @@ export const useSellerStore = defineStore("seller", () => {
     } finally {
       localStorage.removeItem(SELLER_TOKEN_KEY);
       localStorage.removeItem(IMPERSONATION_KEY);
+      localStorage.removeItem(TENANT_KEY);
     }
 
     window.location.assign("/seller?notice=impersonation_returned");

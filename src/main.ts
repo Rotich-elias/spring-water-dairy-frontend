@@ -6,7 +6,13 @@ import { i18n } from "@/app/i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { useTenantStore } from "@/stores/tenant";
-import { consumeSellerRestore } from "@/api";
+import {
+  consumeSellerRestore,
+  IMPERSONATION_KEY,
+  SELLER_TOKEN_KEY,
+  TENANT_KEY,
+  TOKEN_KEY,
+} from "@/api";
 import "@/assets/main.css";
 
 async function bootstrap(): Promise<void> {
@@ -32,7 +38,7 @@ async function bootstrap(): Promise<void> {
   const settings = useSettingsStore();
   const tenants = useTenantStore();
 
-  const loginRoutes = ["login", "seller.login"];
+  const loginRoutes = ["login"];
 
   async function loadTenantData(force = false): Promise<void> {
     // A Platform Admin has no farm context, and a login screen must not fire
@@ -56,7 +62,7 @@ async function bootstrap(): Promise<void> {
     if (isAuthenticated && !wasAuthenticated) {
       await loadTenantData(true);
     } else if (!isAuthenticated && wasAuthenticated) {
-      localStorage.removeItem("swd.tenant_id");
+      localStorage.removeItem(TENANT_KEY);
     }
   });
 
@@ -68,15 +74,22 @@ async function bootstrap(): Promise<void> {
     }
   });
 
-  // Redirect to login on 401 from any API call. Login screens are exempt:
-  // a rejected seller sign-in can have stale in-flight requests, and the
-  // seller-access error must stay visible instead of bouncing to /login.
+  // Redirect to login on 401 from any API call. The login screen is exempt
+  // so stale in-flight requests never bounce a user away from an error.
   window.addEventListener("swd:unauthenticated", () => {
     useAuthStore().clear();
-    localStorage.removeItem("swd.tenant_id");
-    const routeName = router.currentRoute.value.name;
-    if (routeName !== "login" && routeName !== "seller.login") {
+    localStorage.removeItem(TENANT_KEY);
+    if (router.currentRoute.value.name !== "login") {
       void router.replace({ name: "login" });
+    }
+  });
+
+  // Impersonation switches tokens globally. Other open tabs must pick up the
+  // new session (and the return banner) instead of using a stale farm token.
+  const sessionKeys = [TOKEN_KEY, SELLER_TOKEN_KEY, IMPERSONATION_KEY, TENANT_KEY];
+  window.addEventListener("storage", (event) => {
+    if (!event.key || sessionKeys.includes(event.key)) {
+      window.location.reload();
     }
   });
 

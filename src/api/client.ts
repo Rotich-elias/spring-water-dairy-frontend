@@ -14,6 +14,7 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 export const TOKEN_KEY = "swd.token";
 export const SELLER_TOKEN_KEY = "swd.seller_token";
 export const IMPERSONATION_KEY = "swd.impersonation";
+export const TENANT_KEY = "swd.tenant_id";
 
 /** Metadata kept while a Platform Admin is viewing a farm as its owner. */
 export interface ImpersonationMeta {
@@ -42,7 +43,7 @@ export function readImpersonation(): ImpersonationMeta | null {
 
 let sellerRestorePending = false;
 
-/** True once a 401 has switched an impersonated session back to the seller. */
+/** True once a 401/403 has switched an impersonated session back to the seller. */
 export function consumeSellerRestore(): boolean {
   const pending = sellerRestorePending;
   sellerRestorePending = false;
@@ -56,6 +57,7 @@ export function restoreSellerSession(): boolean {
   localStorage.setItem(TOKEN_KEY, sellerToken);
   localStorage.removeItem(SELLER_TOKEN_KEY);
   localStorage.removeItem(IMPERSONATION_KEY);
+  localStorage.removeItem(TENANT_KEY);
   return true;
 }
 
@@ -95,16 +97,26 @@ function isPlatformEndpoint(url: string): boolean {
 /* Request interceptor: attach Bearer token and active tenant header.  */
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem(TOKEN_KEY);
+    const url = config.url ?? "";
+
+    // While impersonating a farm, seller requests must keep using the
+    // Platform Admin token. Otherwise a farm Owner token reaches the seller
+    // endpoints and every mutation fails with 403.
+    const sellerToken = localStorage.getItem(SELLER_TOKEN_KEY);
+    const token =
+      url.startsWith("/seller") && readImpersonation() && sellerToken
+        ? sellerToken
+        : localStorage.getItem(TOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
     // The backend scopes every farm data request to the selected tenant.
-    // Platform-wide endpoints (public site, seller console, inquiries) are
-    // deliberately excluded so an impersonated farm never leaks into them.
-    const tenantId = localStorage.getItem("swd.tenant_id");
-    if (tenantId && !isPlatformEndpoint(config.url ?? "")) {
+    // Platform-wide endpoints (public site, seller console, inquiries) and
+    // auth endpoints are deliberately excluded so an impersonated farm never
+    // leaks into them.
+    const tenantId = localStorage.getItem(TENANT_KEY);
+    if (tenantId && !isPlatformEndpoint(url) && !url.startsWith("/auth/")) {
       config.headers["X-Tenant-ID"] = tenantId;
     }
 
@@ -158,6 +170,17 @@ api.interceptors.response.use(
         // Missing or expired token — clear session and redirect to login.
         localStorage.removeItem(TOKEN_KEY);
         window.dispatchEvent(new Event("swd:unauthenticated"));
+        break;
+      }
+      case 403: {
+        // Safety net: a seller request made while a farm view is active must
+        // never surface a raw "unauthorized" error. Restore the seller token
+        // and return the user to their console with a clear notice.
+        const url = (error.config as InternalAxiosRequestConfig | undefined)?.url ?? "";
+        if (url.startsWith("/seller") && readImpersonation() && restoreSellerSession()) {
+          sellerRestorePending = true;
+          window.location.assign("/seller?notice=impersonation_returned");
+        }
         break;
       }
       case 409:

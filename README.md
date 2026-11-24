@@ -48,15 +48,19 @@ npm run preview
   `#contact`.
 - The contact form posts to `POST /contact-inquiries`, validates locally, shows API field
   errors, and explains rate limiting (5 requests/minute).
-- The footer links to `/seller/login?redirect=/seller` for Platform Admin sign-in.
+- Everyone signs in at `/login`; the public footer has no separate seller link.
 - Branding constants: product `TetoDairy`, parent `Teto Technologies` (`https://teto.co.ke`),
   footer text exactly `Powered by Teto Technologies`.
 
 ## Seller console
 
-- `/seller/login` reuses the login screen and requires a Platform Admin account.
+- `/login` handles both identities: a Platform Admin is routed to `/seller`, farm users
+  to `/dashboard`.
 - `/seller` is guarded by `meta.roles: ["Platform Admin"]`. Other roles are sent to the
   dashboard with a friendly notice.
+- While impersonating a farm, `/seller/*` calls keep using the Platform Admin token and
+  farm calls use the short-lived impersonation token, so seller actions never fail with
+  a farm user's 403. Token changes are synced across open tabs.
 - Tabs: overview, site info, landing content, plans & pricing, farms & subscriptions,
   and inquiries. All seller calls use the same `/auth/login` token.
 - Landing content arrays are edited with repeatable rows, not raw JSON.

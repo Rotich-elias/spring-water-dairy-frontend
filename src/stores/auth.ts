@@ -4,6 +4,7 @@ import {
   api,
   IMPERSONATION_KEY,
   SELLER_TOKEN_KEY,
+  TENANT_KEY,
   TOKEN_KEY,
   type LoginResponse,
   type User,
@@ -30,6 +31,7 @@ export const useAuthStore = defineStore("auth", () => {
   function forgetImpersonation(): void {
     localStorage.removeItem(SELLER_TOKEN_KEY);
     localStorage.removeItem(IMPERSONATION_KEY);
+    localStorage.removeItem(TENANT_KEY);
   }
 
   async function login(login: string, password: string): Promise<LoginResponse> {

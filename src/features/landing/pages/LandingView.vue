@@ -849,12 +849,6 @@ onMounted(() => {
           >
             {{ t("landing.footer_parent_label") }}: {{ parentCompany }}
           </a>
-          <router-link
-            :to="{ name: 'seller.login', query: { redirect: '/seller' } }"
-            class="text-slate-500 underline-offset-2 hover:underline"
-          >
-            {{ t("landing.footer_seller_login") }}
-          </router-link>
         </div>
 
         <div class="text-xs text-slate-500 sm:text-right">

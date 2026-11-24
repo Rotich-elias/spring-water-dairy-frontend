@@ -25,27 +25,18 @@ const { login, loggingIn, error } = useAuth();
 const loginId = ref("");
 const password = ref("");
 const showPassword = ref(false);
-const accessError = ref<string | null>(null);
-
-const isSellerLogin = computed(() => route.name === "seller.login");
 
 /** Only accept internal paths from the redirect query. */
 const redirectTarget = computed(() => {
   const raw = route.query.redirect;
-  const path = typeof raw === "string" && raw ? raw : isSellerLogin.value ? "/seller" : "/";
-  return path.startsWith("/") && !path.startsWith("//") ? path : "/";
+  const path = typeof raw === "string" && raw ? raw : "/dashboard";
+  return path.startsWith("/") && !path.startsWith("//") ? path : "/dashboard";
 });
 
-const heading = computed(() =>
-  isSellerLogin.value ? t("auth.seller_title") : t("auth.login"),
-);
-const subtitle = computed(() =>
-  isSellerLogin.value ? t("auth.seller_subtitle") : t("auth.sign_in_subtitle"),
-);
-const eyebrow = computed(() =>
-  isSellerLogin.value ? t("auth.seller_welcome_back") : t("auth.welcome_back"),
-);
-const displayedError = computed(() => accessError.value ?? error.value);
+const heading = computed(() => t("auth.login"));
+const subtitle = computed(() => t("auth.sign_in_subtitle"));
+const eyebrow = computed(() => t("auth.welcome_back"));
+const displayedError = computed(() => error.value);
 
 const features = computed(() => [
   t("auth.feature_herd"),
@@ -55,35 +46,30 @@ const features = computed(() => [
 
 async function goToDestination(): Promise<void> {
   const target = redirectTarget.value;
+
+  // A farm user must never reach the seller console, even with a crafted URL.
   if (target.startsWith("/seller") && !auth.isPlatformAdmin) {
-    accessError.value = t("seller.access_required_notice");
     await router.push({ name: "home", query: { notice: "seller_access_required" } });
     return;
   }
+
+  // The platform buyer has no farm workspace; send them to the console.
+  if (auth.isPlatformAdmin && !target.startsWith("/seller")) {
+    await router.push({ name: "seller" });
+    return;
+  }
+
   await router.push(target);
 }
 
 async function handleLogin(): Promise<void> {
-  accessError.value = null;
   const result = await login(loginId.value, password.value);
   if (!result) return;
-
-  if (isSellerLogin.value && !auth.isPlatformAdmin) {
-    // Never leave a farm session behind for someone who tried the seller URL.
-    auth.clear();
-    accessError.value = t("seller.access_required_notice");
-    return;
-  }
-
   await goToDestination();
 }
 
 onMounted(() => {
   if (!auth.isAuthenticated) return;
-  if (isSellerLogin.value && !auth.isPlatformAdmin) {
-    accessError.value = t("seller.access_required_notice");
-    return;
-  }
   void goToDestination();
 });
 </script>
@@ -119,7 +105,7 @@ onMounted(() => {
 
       <div class="relative max-w-lg">
         <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-300">
-          {{ isSellerLogin ? t("seller.title") : t("app.tagline") }}
+          {{ t("app.tagline") }}
         </p>
         <h2 class="text-balance text-4xl font-bold leading-[1.1] tracking-tight xl:text-5xl">
           {{ t("auth.hero_title") }}
@@ -140,7 +126,7 @@ onMounted(() => {
 
       <div class="relative flex items-center gap-2 text-xs text-white/40">
         <ShieldCheck :size="15" class="text-brand-300" />
-        {{ isSellerLogin ? t("seller.access_required") : t("auth.secure_access") }}
+        {{ t("auth.secure_access") }}
       </div>
     </section>
 

@@ -15,7 +15,7 @@ const { t, locale } = useI18n();
 const seller = useSellerStore();
 
 const showShell = computed(
-  () => route.name !== "login" && route.name !== "seller.login" && route.name !== "landing",
+  () => route.name !== "login" && route.name !== "landing",
 );
 
 const impersonation = computed(() => readImpersonation());

@@ -33,12 +33,6 @@ const routes: RouteRecordRaw[] = [
     meta: { title: "Login", hideForRoles: [] },
   },
   {
-    path: "/seller/login",
-    name: "seller.login",
-    component: () => import("@/features/auth/pages/LoginView.vue"),
-    meta: { title: "Seller sign in", hideForRoles: [] },
-  },
-  {
     path: "/seller",
     name: "seller",
     component: () => import("@/features/seller/pages/SellerView.vue"),

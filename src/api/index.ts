@@ -15,6 +15,7 @@ export {
   TOKEN_KEY,
   SELLER_TOKEN_KEY,
   IMPERSONATION_KEY,
+  TENANT_KEY,
 } from "./client";
 export type { ApiError, ApiErrorResponse, ImpersonationMeta } from "./client";
 export { createClientUuid } from "./uuid";

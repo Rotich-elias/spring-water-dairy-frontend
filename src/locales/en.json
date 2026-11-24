@@ -55,10 +55,7 @@
     "feature_milk": "Milk yield tracking",
     "feature_offline": "Works offline",
     "secure_access": "Secure farm access",
-    "remember": "Stay signed in on this device",
-    "seller_title": "Seller sign in",
-    "seller_subtitle": "Sign in with a Platform Admin account to manage plans, farms and inquiries.",
-    "seller_welcome_back": "Platform access"
+    "remember": "Stay signed in on this device"
   },
   "common": {
     "save": "Save",
@@ -448,7 +445,6 @@
     "footer_contact": "hello@tetodairy.co.ke",
     "footer_rights": "All rights reserved.",
     "footer_parent_label": "Parent company",
-    "footer_seller_login": "Seller sign in",
     "nav_contact": "Contact",
     "contact_eyebrow": "Talk to us",
     "contact_title": "Bring your dairy onto TetoDairy",
