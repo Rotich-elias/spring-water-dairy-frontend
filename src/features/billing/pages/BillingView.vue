@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
+import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useTenantStore } from "@/stores/tenant";
 
 const { t } = useI18n();
+const route = useRoute();
 const auth = useAuthStore();
 const tenantStore = useTenantStore();
 
@@ -14,7 +16,15 @@ const canManage = computed(() => auth.hasPermission("billing.manage"));
 const plan = computed(() => tenantStore.billing?.plan ?? null);
 const subscribedPlan = computed(() => tenantStore.billing?.subscribed_plan ?? null);
 const subscription = computed(() => tenantStore.billing?.subscription ?? null);
+const pendingCheckout = computed(() => tenantStore.billing?.pending_checkout ?? null);
+const lastPayment = computed(() => tenantStore.billing?.last_payment ?? null);
+const paymentOverdue = computed(
+  () => subscription.value?.payment_status?.toLowerCase() === "past_due",
+);
 const notice = ref<string | null>(null);
+let checkoutPoll: number | null = null;
+let checkoutAttempts = 0;
+let polling = false;
 
 const USAGE_KEYS = [
   "animals",
@@ -79,10 +89,56 @@ function formatDate(value?: string | null): string {
 
 function statusText(status: string): string {
   const normalized = status.toLowerCase();
-  if (["active", "trialing", "cancelled", "expired"].includes(normalized)) {
+  if (["active", "trialing", "cancelled", "expired", "past_due"].includes(normalized)) {
     return t(`billing.${normalized}`);
   }
   return status;
+}
+
+function paymentStatusText(status?: string | null): string {
+  const normalized = (status ?? "none").toLowerCase();
+  if (["paid", "failed", "none", "processing"].includes(normalized)) {
+    return t(`billing.${normalized}`);
+  }
+  return status ?? "—";
+}
+
+function queryText(value: unknown): string | null {
+  return typeof value === "string" && value !== "" ? value : null;
+}
+
+function stopCheckoutPolling(): void {
+  if (checkoutPoll !== null) {
+    window.clearInterval(checkoutPoll);
+    checkoutPoll = null;
+  }
+}
+
+function waitForCheckout(expectedPlan: string | null): void {
+  stopCheckoutPolling();
+  checkoutAttempts = 0;
+  notice.value = "billing.checkout_processing";
+  checkoutPoll = window.setInterval(async () => {
+    if (polling) return;
+    polling = true;
+    checkoutAttempts += 1;
+    try {
+      await tenantStore.loadBilling();
+      const stillPending = pendingCheckout.value !== null;
+      const planConfirmed =
+        expectedPlan === null || plan.value?.code === expectedPlan;
+
+      if (!stillPending && planConfirmed) {
+        stopCheckoutPolling();
+        notice.value = "billing.checkout_success";
+      } else if (checkoutAttempts >= 15) {
+        stopCheckoutPolling();
+        notice.value = "billing.checkout_timeout";
+      }
+    } finally {
+      polling = false;
+    }
+  }, 2000);
 }
 
 const endDate = computed(
@@ -108,10 +164,19 @@ function price(monthly: number): string {
   return Number(monthly ?? 0).toFixed(2);
 }
 
-async function subscribe(code: string): Promise<void> {
-  if (isCurrent(code)) return;
+async function selectPlan(option: { code: string; price_monthly: number }): Promise<void> {
+  if (isCurrent(option.code) || pendingCheckout.value?.plan_code === option.code) return;
   notice.value = null;
-  if (await tenantStore.subscribe(code)) {
+
+  if (Number(option.price_monthly) > 0) {
+    const session = await tenantStore.startCheckout(option.code);
+    if (session?.authorization_url) {
+      window.location.assign(session.authorization_url);
+    }
+    return;
+  }
+
+  if (await tenantStore.subscribe(option.code)) {
     notice.value = "billing.subscribe_success";
   }
 }
@@ -124,9 +189,19 @@ async function cancelSubscription(): Promise<void> {
   }
 }
 
-onMounted(() => {
-  if (canView.value) void tenantStore.load();
+onMounted(async () => {
+  if (!canView.value) return;
+  await tenantStore.load();
+
+  const checkoutState = queryText(route.query.checkout);
+  if (checkoutState === "cancelled") {
+    notice.value = "billing.checkout_cancelled";
+  } else if (checkoutState === "success") {
+    waitForCheckout(queryText(route.query.plan));
+  }
 });
+
+onUnmounted(stopCheckoutPolling);
 </script>
 
 <template>
@@ -152,6 +227,34 @@ onMounted(() => {
 
       <div v-if="notice" class="alert-success mb-4" role="status">
         {{ t(notice) }}
+      </div>
+
+      <div v-if="pendingCheckout" class="alert-warning mb-4" role="status">
+        <p class="font-semibold">{{ t("billing.pending_checkout") }}</p>
+        <p class="mt-1 text-sm">
+          {{
+            t("billing.pending_checkout_notice", {
+              plan: pendingCheckout.plan_name || pendingCheckout.plan_code,
+            })
+          }}
+        </p>
+        <a
+          v-if="pendingCheckout.authorization_url"
+          :href="pendingCheckout.authorization_url"
+          class="btn-primary btn-sm mt-3"
+          rel="noopener"
+        >
+          {{ t("billing.resume_checkout") }}
+        </a>
+      </div>
+
+      <div v-if="paymentOverdue" class="alert-warning mb-4" role="status">
+        {{
+          t("billing.payment_failed_notice", {
+            plan: subscribedPlan?.name ?? plan?.name ?? "",
+            date: formatDate(endDate),
+          })
+        }}
       </div>
 
       <p v-if="tenantStore.loading && !tenantStore.billing" class="card text-slate-500">
@@ -192,7 +295,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <dl class="mt-4 grid gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-3">
+          <dl class="mt-4 grid gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-4">
             <div>
               <dt class="label">{{ t("billing.status") }}</dt>
               <dd class="font-semibold capitalize text-slate-800">
@@ -216,7 +319,30 @@ onMounted(() => {
               </dt>
               <dd class="font-semibold text-slate-800">{{ formatDate(endDate) }}</dd>
             </div>
+            <div>
+              <dt class="label">{{ t("billing.payment_status") }}</dt>
+              <dd class="font-semibold capitalize text-slate-800">
+                {{ paymentStatusText(subscription?.payment_status) }}
+              </dd>
+            </div>
           </dl>
+
+          <div v-if="lastPayment" class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+            <span class="text-slate-500">{{ t("billing.last_payment") }}</span>
+            <span class="font-medium text-slate-800">
+              {{ formatDate(lastPayment.paid_at) }} ·
+              {{ paymentStatusText(lastPayment.status) }}
+            </span>
+            <a
+              v-if="lastPayment.receipt_url"
+              :href="lastPayment.receipt_url"
+              class="btn-outline btn-sm"
+              rel="noopener"
+              target="_blank"
+            >
+              {{ t("billing.receipt") }}
+            </a>
+          </div>
 
           <button
             v-if="canCancel"
@@ -301,13 +427,21 @@ onMounted(() => {
               v-if="canManage"
               type="button"
               class="btn-primary mt-auto w-full"
-              :disabled="tenantStore.saving || isCurrent(option.code)"
-              @click="subscribe(option.code)"
+              :disabled="
+                tenantStore.saving ||
+                isCurrent(option.code) ||
+                pendingCheckout?.plan_code === option.code
+              "
+              @click="selectPlan(option)"
             >
               {{
                 isCurrent(option.code)
                   ? t("billing.current")
-                  : t("billing.subscribe")
+                  : pendingCheckout?.plan_code === option.code
+                    ? t("billing.checkout_pending")
+                    : Number(option.price_monthly) > 0
+                      ? t("billing.checkout")
+                      : t("billing.subscribe")
               }}
             </button>
           </div>

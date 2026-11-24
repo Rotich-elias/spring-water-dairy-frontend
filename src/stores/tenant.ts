@@ -1,6 +1,12 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { api, type BillingSummary, type Plan, type Tenant } from "@/api";
+import {
+  api,
+  type BillingSummary,
+  type CheckoutSession,
+  type Plan,
+  type Tenant,
+} from "@/api";
 import { useSettingsStore } from "@/stores/settings";
 
 const TENANT_KEY = "swd.tenant_id";
@@ -128,6 +134,23 @@ export const useTenantStore = defineStore("tenant", () => {
     }
   }
 
+  async function startCheckout(code: string): Promise<CheckoutSession | null> {
+    saving.value = true;
+    error.value = "";
+    try {
+      const response = await api.post<{ data: CheckoutSession }>(
+        "/billing/checkout",
+        { plan_code: code },
+      );
+      return response.data.data;
+    } catch (e) {
+      error.value = apiMessage(e);
+      return null;
+    } finally {
+      saving.value = false;
+    }
+  }
+
   async function subscribe(code: string): Promise<boolean> {
     saving.value = true;
     error.value = "";
@@ -182,6 +205,7 @@ export const useTenantStore = defineStore("tenant", () => {
     loadPlans,
     switchTo,
     create,
+    startCheckout,
     subscribe,
     cancel,
   };

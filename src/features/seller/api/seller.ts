@@ -61,7 +61,14 @@ export interface ImpersonationResult {
 
 export type PlanInput = Pick<
   Plan,
-  "code" | "name" | "description" | "price_monthly" | "limits" | "is_active" | "sort_order"
+  | "code"
+  | "name"
+  | "description"
+  | "price_monthly"
+  | "provider_price_id"
+  | "limits"
+  | "is_active"
+  | "sort_order"
 >;
 
 export interface SellerInquiry extends ContactInquiry {
