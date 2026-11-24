@@ -99,7 +99,7 @@ export const useTenantStore = defineStore("tenant", () => {
       // A full reload guarantees that every tenant-scoped in-memory cache
       // (settings, offline Dexie tables, query caches) is rebuilt against the
       // new farm instead of showing data from the previous tenant.
-      window.location.assign("/");
+      window.location.assign("/dashboard");
     } catch (e) {
       error.value = apiMessage(e);
     } finally {

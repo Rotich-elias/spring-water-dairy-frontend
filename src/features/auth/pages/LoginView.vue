@@ -42,7 +42,7 @@ async function handleLogin(): Promise<void> {
 
 onMounted(() => {
   if (auth.isAuthenticated) {
-    void router.push("/");
+    void router.push({ name: "home" });
   }
 });
 </script>

@@ -8,7 +8,7 @@ import TopBar from "@/components/TopBar.vue";
 
 const route = useRoute();
 
-const showShell = computed(() => route.name !== "login");
+const showShell = computed(() => route.name !== "login" && route.name !== "landing");
 </script>
 
 <template>

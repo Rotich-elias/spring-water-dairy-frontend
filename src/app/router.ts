@@ -13,13 +13,19 @@ interface RouteMeta {
 
 const routes: RouteRecordRaw[] = [
   {
+    path: "/",
+    name: "landing",
+    component: () => import("@/features/landing/pages/LandingView.vue"),
+    meta: { title: "Spring Water Dairy", hideForRoles: [] },
+  },
+  {
     path: "/login",
     name: "login",
     component: () => import("@/features/auth/pages/LoginView.vue"),
     meta: { title: "Login", hideForRoles: [] },
   },
   {
-    path: "/",
+    path: "/dashboard",
     name: "home",
     component: () => import("@/features/dashboard/pages/DashboardView.vue"),
     meta: { requiresAuth: true, title: "Dashboard" },
@@ -258,6 +264,10 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore();
+
+  if (to.name === "landing" && auth.isAuthenticated) {
+    return next({ name: "home" });
+  }
 
   if (to.meta?.requiresAuth && !auth.isAuthenticated) {
     return next({ name: "login", query: { redirect: String(to.fullPath) } });
