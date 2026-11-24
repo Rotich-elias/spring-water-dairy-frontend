@@ -55,7 +55,8 @@
     "feature_milk": "Milk yield tracking",
     "feature_offline": "Works offline",
     "secure_access": "Secure farm access",
-    "remember": "Stay signed in on this device"
+    "remember": "Stay signed in on this device",
+    "back_to_home": "Back to home"
   },
   "common": {
     "save": "Save",

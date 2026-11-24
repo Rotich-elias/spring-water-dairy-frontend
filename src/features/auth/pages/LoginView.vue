@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRoute, useRouter } from "vue-router";
 import {
+  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Droplets,
@@ -147,6 +148,14 @@ onMounted(() => {
             </p>
           </div>
         </div>
+
+        <router-link
+          :to="{ name: 'landing' }"
+          class="mb-8 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-brand-700"
+        >
+          <ArrowLeft :size="16" />
+          {{ t("auth.back_to_home") }}
+        </router-link>
 
         <p class="eyebrow">{{ eyebrow }}</p>
         <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ heading }}</h1>
