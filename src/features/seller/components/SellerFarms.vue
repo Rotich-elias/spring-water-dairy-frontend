@@ -8,6 +8,7 @@ import {
   Loader2,
   Plus,
   RefreshCw,
+  Trash2,
   X,
 } from "lucide-vue-next";
 import { getErrorMessage, type Plan } from "@/api";
@@ -15,6 +16,7 @@ import {
   cancelFarmSubscription,
   changeFarmPlan,
   createSellerFarm,
+  deleteSellerFarm,
   impersonateFarm,
   updateSellerFarm,
   type SellerFarm,
@@ -32,6 +34,7 @@ const notice = ref<string | null>(null);
 const error = ref<string | null>(null);
 const selectedPlan = reactive<Record<number, string>>({});
 const impersonationTarget = ref<SellerFarm | null>(null);
+const deleteTarget = ref<SellerFarm | null>(null);
 const reason = ref("");
 const working = ref(false);
 
@@ -72,7 +75,7 @@ function usageRows(farm: SellerFarm) {
 
 function statusText(status: string): string {
   if (status === "active") return t("common.active");
-  if (status === "inactive" || status === "suspended") return t("common.inactive");
+  if (status === "suspended" || status === "inactive") return t("seller.farms.suspended");
   return status;
 }
 
@@ -153,8 +156,32 @@ async function toggleStatus(farm: SellerFarm): Promise<void> {
   notice.value = null;
   error.value = null;
   try {
-    await updateSellerFarm(farm.id, { status: farm.status === "active" ? "inactive" : "active" });
+    await updateSellerFarm(farm.id, { status: farm.status === "active" ? "suspended" : "active" });
     notice.value = "seller.farms.status_updated";
+    await seller.loadFarms();
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, t("errors.unexpected"));
+  } finally {
+    working.value = false;
+  }
+}
+
+function openDelete(farm: SellerFarm): void {
+  deleteTarget.value = farm;
+  notice.value = null;
+  error.value = null;
+}
+
+async function confirmDelete(): Promise<void> {
+  const target = deleteTarget.value;
+  if (!target) return;
+  working.value = true;
+  notice.value = null;
+  error.value = null;
+  try {
+    await deleteSellerFarm(target.id);
+    deleteTarget.value = null;
+    notice.value = "seller.farms.deleted";
     await seller.loadFarms();
   } catch (e: unknown) {
     error.value = getErrorMessage(e, t("errors.unexpected"));
@@ -348,7 +375,7 @@ onMounted(async () => {
                       {{ t(farm.status === "active" ? "seller.farms.suspend" : "seller.farms.activate") }}
                     </button>
                     <button
-                      v-if="farm.subscription_status"
+                      v-if="farm.subscription_status && farm.subscription_status !== 'cancelled'"
                       type="button"
                       class="btn-ghost btn-sm text-safety-600"
                       :disabled="working"
@@ -360,12 +387,58 @@ onMounted(async () => {
                       <ExternalLink :size="13" />
                       {{ t("seller.farms.open_as_owner") }}
                     </button>
+                    <button
+                      type="button"
+                      class="btn-danger btn-sm"
+                      :disabled="working"
+                      @click="openDelete(farm)"
+                    >
+                      <Trash2 :size="13" />
+                      {{ t("seller.farms.delete") }}
+                    </button>
                   </div>
                 </div>
               </td>
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Delete farm dialog -->
+    <div
+      v-if="deleteTarget"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/50 p-4"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div class="card w-full max-w-md">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <h3 class="text-lg font-semibold text-slate-900">{{ t("seller.farms.delete") }}</h3>
+            <p class="mt-1 text-sm text-slate-500">{{ deleteTarget.name }}</p>
+          </div>
+          <button
+            type="button"
+            class="icon-btn"
+            :aria-label="t('common.cancel')"
+            @click="deleteTarget = null"
+          >
+            <X :size="18" />
+          </button>
+        </div>
+        <p class="mt-4 text-sm text-slate-600">
+          {{ t("seller.farms.confirm_delete", { name: deleteTarget.name }) }}
+        </p>
+        <div class="mt-5 flex justify-end gap-2">
+          <button type="button" class="btn-outline" @click="deleteTarget = null">
+            {{ t("common.cancel") }}
+          </button>
+          <button type="button" class="btn-danger" :disabled="working" @click="confirmDelete">
+            <Loader2 v-if="working" :size="16" class="animate-spin" />
+            {{ t("seller.farms.delete") }}
+          </button>
+        </div>
       </div>
     </div>
 

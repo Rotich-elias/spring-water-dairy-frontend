@@ -120,6 +120,10 @@ export function updateSellerFarm(
   return api.patch(`/seller/farms/${id}`, payload).then((r) => unwrap<SellerFarm>(r.data));
 }
 
+export function deleteSellerFarm(id: number): Promise<{ id: number; deleted: boolean }> {
+  return api.delete(`/seller/farms/${id}`).then((r) => unwrap<{ id: number; deleted: boolean }>(r.data));
+}
+
 export function changeFarmPlan(id: number, plan_code: string): Promise<unknown> {
   return api.post(`/seller/farms/${id}/subscription`, { plan_code }).then((r) => r.data);
 }
