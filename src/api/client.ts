@@ -31,13 +31,21 @@ export const api: AxiosInstance = axios.create({
   },
 });
 
-/* Request interceptor: attach Bearer token from Pinia auth store.    */
+/* Request interceptor: attach Bearer token and active tenant header.  */
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("swd.token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // The backend scopes every data request to the selected farm. Sending the
+    // header here keeps tenant isolation transparent to feature API modules.
+    const tenantId = localStorage.getItem("swd.tenant_id");
+    if (tenantId) {
+      config.headers["X-Tenant-ID"] = tenantId;
+    }
+
     return config;
   },
   (error) => Promise.reject(error),

@@ -11,9 +11,11 @@ import {
   Settings,
 } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
+import { useSettingsStore } from "@/stores/settings";
 import { navGroups } from "@/app/navigation";
 
 const auth = useAuthStore();
+const settingsStore = useSettingsStore();
 const route = useRoute();
 const router = useRouter();
 const { t, locale } = useI18n();
@@ -107,7 +109,7 @@ onUnmounted(() => document.removeEventListener("click", handleOutsideClick));
         v-else
         :to="{ name: 'home' }"
         class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm lg:hidden"
-        :aria-label="t('app.name')"
+        :aria-label="settingsStore.farmName"
       >
         <Droplets :size="18" />
       </router-link>
@@ -115,7 +117,7 @@ onUnmounted(() => document.removeEventListener("click", handleOutsideClick));
       <!-- Title -->
       <div class="min-w-0 flex-1">
         <p class="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-700 lg:block">
-          {{ t("app.name") }}
+          {{ settingsStore.farmName }}
         </p>
         <h1 class="truncate text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
           {{ title }}

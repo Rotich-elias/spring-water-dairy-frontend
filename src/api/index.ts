@@ -46,3 +46,46 @@ export interface Paginated<T> {
 export interface SettingMap {
   [key: string]: string | number | boolean | any;
 }
+
+/* SaaS tenant / farm switching types (mirrors the backend contract). */
+export interface Tenant {
+  id: number;
+  name: string;
+  slug: string;
+  status: string;
+  owner_id: number;
+  current: boolean;
+  role: string | null;
+  is_owner: boolean;
+  created_at: string;
+}
+
+export interface Plan {
+  id: number;
+  code: string;
+  name: string;
+  description: string;
+  price_monthly: number;
+  limits: Record<string, number | null>;
+  is_active: boolean;
+  current?: boolean;
+}
+
+export interface Subscription {
+  id: number;
+  plan_id: number;
+  status: string;
+  trial_ends_at?: string | null;
+  ends_at?: string | null;
+  current_period_end?: string | null;
+  canceled_at?: string | null;
+  created_at?: string;
+}
+
+export interface BillingSummary {
+  plan: Plan;
+  subscription: Subscription | null;
+  limits: Record<string, number | null>;
+  usage: Record<string, number>;
+  can_create: Record<string, boolean>;
+}

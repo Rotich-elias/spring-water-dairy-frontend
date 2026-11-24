@@ -118,13 +118,13 @@ export function useAnimals() {
     formData.append("imageable_type", "animal");
     formData.append("imageable_id", String(id));
     formData.append("image", file);
+
     if (isPrimary) {
       formData.append("is_primary", "1");
     }
 
-    const res = await api.post<{ data: AnimalImage }>("images", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const res = await api.post<{ data: AnimalImage }>("images", formData);
+
     return res.data.data;
   }
 

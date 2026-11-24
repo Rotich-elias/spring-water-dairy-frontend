@@ -326,3 +326,120 @@
     display: none;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/*  Dark theme                                                         */
+/* ------------------------------------------------------------------ */
+/* Unlayered on purpose: it must win over the Tailwind layers above.
+   Brand/teal utilities are intentionally not overridden — they are driven
+   by the runtime CSS variables set in src/app/theme.ts. `text-white` is
+   also left alone so sidebar and primary buttons stay legible. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-cream: var(--dark-surface-sunken);
+  --color-slate-900: var(--dark-text);
+}
+
+html[data-theme="dark"] body {
+  background-color: var(--dark-surface-sunken);
+  background-image: none;
+  color: var(--dark-text);
+}
+
+html[data-theme="dark"] ::selection {
+  background-color: rgba(16, 185, 129, 0.35);
+  color: #ffffff;
+}
+
+html[data-theme="dark"] * {
+  scrollbar-color: #42544e transparent;
+}
+
+html[data-theme="dark"] *::-webkit-scrollbar-thumb {
+  background-color: #42544e;
+}
+
+/* Neutral surfaces */
+html[data-theme="dark"] .bg-white,
+html[data-theme="dark"] .bg-cream,
+html[data-theme="dark"] .bg-slate-50,
+html[data-theme="dark"] .bg-slate-100,
+html[data-theme="dark"] .bg-white\/80,
+html[data-theme="dark"] .bg-white\/60,
+html[data-theme="dark"] .bg-cream\/80,
+html[data-theme="dark"] .bg-cream\/70 {
+  background-color: var(--dark-surface);
+}
+
+html[data-theme="dark"] .bg-slate-200\/60,
+html[data-theme="dark"] .bg-slate-200\/70,
+html[data-theme="dark"] .bg-slate-200 {
+  background-color: var(--dark-surface-raised);
+}
+
+/* Neutral text */
+html[data-theme="dark"] .text-slate-900,
+html[data-theme="dark"] .text-ink-900,
+html[data-theme="dark"] .text-slate-700 {
+  color: var(--dark-text);
+}
+
+html[data-theme="dark"] .text-slate-600,
+html[data-theme="dark"] .text-slate-500 {
+  color: var(--dark-text-muted);
+}
+
+/* Neutral borders */
+html[data-theme="dark"] .border-slate-200,
+html[data-theme="dark"] .border-slate-200\/80,
+html[data-theme="dark"] .border-slate-200\/70,
+html[data-theme="dark"] .border-slate-100,
+html[data-theme="dark"] .border-slate-300 {
+  border-color: var(--dark-border);
+}
+
+/* Shared component classes */
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .card-tight,
+html[data-theme="dark"] .input,
+html[data-theme="dark"] .select {
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+html[data-theme="dark"] .label {
+  color: var(--dark-text-muted);
+}
+
+html[data-theme="dark"] .btn-outline,
+html[data-theme="dark"] .icon-btn-bordered,
+html[data-theme="dark"] .chip {
+  background-color: var(--dark-surface-raised);
+  border-color: var(--dark-border);
+  color: var(--dark-text);
+}
+
+html[data-theme="dark"] .btn-ghost,
+html[data-theme="dark"] .icon-btn {
+  color: var(--dark-text-muted);
+}
+
+html[data-theme="dark"] .empty-state {
+  background-color: var(--dark-surface-sunken);
+  border-color: var(--dark-border);
+}
+
+html[data-theme="dark"] .data-table thead th {
+  background-color: var(--dark-surface-raised);
+  color: var(--dark-text-muted);
+}
+
+html[data-theme="dark"] .data-table tbody td {
+  border-color: var(--dark-border-soft);
+  color: var(--dark-text);
+}
+
+html[data-theme="dark"] .surface-divider {
+  border-color: var(--dark-border-soft);
+}

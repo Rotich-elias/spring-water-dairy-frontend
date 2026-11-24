@@ -1,6 +1,13 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { api, type SettingMap } from "@/api";
+import {
+  applyTheme,
+  DEFAULT_PRESET,
+  isThemeMode,
+  isValidHex,
+  type ThemeOptions,
+} from "@/app/theme";
 import type { MilkSessionKey } from "@/features/milk/api/milk";
 
 export interface MilkSessionOption {
@@ -26,6 +33,26 @@ export const useSettingsStore = defineStore("settings", () => {
     if (!Number.isFinite(parsed)) return 2;
     return Math.min(3, Math.max(1, Math.trunc(parsed)));
   });
+
+  /** Public farm name, with a stable fallback before settings load. */
+  const farmName = computed(() => {
+    const name = String(settings.value.farm_name ?? "").trim();
+    return name || "Spring Water Dairy";
+  });
+
+  /** Current theme options, derived from the public settings payload. */
+  const theme = computed<ThemeOptions>(() => ({
+    mode: isThemeMode(settings.value.theme_mode) ? settings.value.theme_mode : "light",
+    preset:
+      typeof settings.value.theme_preset === "string" && settings.value.theme_preset.trim()
+        ? settings.value.theme_preset.trim()
+        : DEFAULT_PRESET,
+    primary: isValidHex(settings.value.theme_primary) ? settings.value.theme_primary : undefined,
+    accent: isValidHex(settings.value.theme_accent) ? settings.value.theme_accent : undefined,
+  }));
+
+  // Any settings fetch (bootstrap, save, refresh) instantly repaints the UI.
+  watch(settings, () => applyTheme(theme.value), { deep: true, immediate: true });
 
   const milkSessions = computed<MilkSessionOption[]>(() => {
     const keys: MilkSessionKey[] =
@@ -77,13 +104,19 @@ export const useSettingsStore = defineStore("settings", () => {
     return MILK_SESSION_OPTIONS[key as MilkSessionKey]?.labelKey ?? `milk.${key}`;
   }
 
+  /** Alias for bootstrap code that prefers an explicit name. */
+  const ensureLoaded = (force = false): Promise<void> => load(force);
+
   return {
     settings,
     loaded,
     loading,
+    farmName,
+    theme,
     milkSessionsPerDay,
     milkSessions,
     load,
+    ensureLoaded,
     defaultSessionKey,
     labelKeyFor,
   };

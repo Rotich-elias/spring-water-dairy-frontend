@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 
-export type Role = "Owner" | "Manager" | "Milker" | "AI Tech" | "Vet" | "Viewer";
+export type Role = "Owner" | "Admin" | "Manager" | "Milker" | "AI Tech" | "Vet" | "Viewer";
 
 interface RouteMeta {
   requiresAuth?: boolean;
@@ -156,7 +156,7 @@ const routes: RouteRecordRaw[] = [
     component: () => import("@/features/admin/pages/AdminView.vue"),
     meta: {
       requiresAuth: true,
-      roles: ["Owner", "Manager"],
+      roles: ["Owner", "Admin", "Manager"],
       title: "Admin",
     },
   },
@@ -189,6 +189,32 @@ const routes: RouteRecordRaw[] = [
       permission: "lookups.view",
       title: "Lookups",
     },
+  },
+  {
+    path: "/admin/appearance",
+    name: "admin.appearance",
+    component: () => import("@/features/admin/pages/AppearanceView.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "appearance.update",
+      title: "Appearance",
+    },
+  },
+  {
+    path: "/admin/billing",
+    name: "admin.billing",
+    component: () => import("@/features/billing/pages/BillingView.vue"),
+    meta: {
+      requiresAuth: true,
+      permission: "billing.view",
+      title: "Billing",
+    },
+  },
+  {
+    path: "/farms",
+    name: "tenants",
+    component: () => import("@/features/tenants/pages/TenantsView.vue"),
+    meta: { requiresAuth: true, title: "Farms" },
   },
   {
     path: "/setup",

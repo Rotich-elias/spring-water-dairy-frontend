@@ -2,7 +2,20 @@
 /* Outdoor, one-handed use: high contrast, large touch targets, readable sizes. */
 
 :root {
-  /* Brand */
+  /* Brand — RGB triplets consumed by Tailwind (opacity modifiers work).
+     theme.ts overwrites these at runtime from the selected preset. */
+  --brand-50: 236 253 245;
+  --brand-100: 209 250 229;
+  --brand-200: 167 243 208;
+  --brand-300: 110 231 183;
+  --brand-400: 52 211 153;
+  --brand-500: 16 185 129;
+  --brand-600: 5 150 105;
+  --brand-700: 4 120 87;
+  --brand-800: 6 95 70;
+  --brand-900: 6 78 59;
+
+  /* Legacy hex tokens (kept for any plain-CSS consumers) */
   --color-brand-50: #ecfdf5;
   --color-brand-100: #d1fae5;
   --color-brand-200: #a7f3d0;
@@ -19,12 +32,28 @@
   --color-safety-600: #dc2626;
   --color-safety-900: #7f1d1d;
 
-  /* Teal (secondary accent) */
+  /* Teal (secondary accent) — RGB triplets, updated from theme_accent */
+  --teal-50: 240 253 250;
+  --teal-100: 204 251 241;
+  --teal-500: 20 184 166;
+  --teal-600: 13 148 136;
+  --teal-900: 19 78 74;
+
+  /* Legacy hex tokens */
   --color-teal-50: #f0fdfa;
   --color-teal-100: #ccfbf1;
   --color-teal-500: #14b8a6;
   --color-teal-600: #0d9488;
   --color-teal-900: #134e4a;
+
+  /* Dark mode surfaces and text (used by the [data-theme="dark"] overrides) */
+  --dark-surface: #111c1a;
+  --dark-surface-raised: #172521;
+  --dark-surface-sunken: #0c1513;
+  --dark-border: #2b3a36;
+  --dark-border-soft: #22302c;
+  --dark-text: #e8f0ec;
+  --dark-text-muted: #a9bab3;
 
   /* Slate neutrals */
   --color-slate-50: #f8fafc;

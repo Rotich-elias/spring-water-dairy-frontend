@@ -25,7 +25,7 @@ const form = ref({
 });
 const formErrors = ref<Record<string, string[]>>({});
 
-const roles = ["Owner", "Manager", "Milker", "AI Tech", "Vet", "Viewer"];
+const roles = ["Owner", "Admin", "Manager", "Milker", "AI Tech", "Vet", "Viewer"];
 
 const canManage = computed(() => auth.hasPermission("users.create"));
 

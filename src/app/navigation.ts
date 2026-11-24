@@ -3,6 +3,8 @@ import {
   BarChart3,
   Beef,
   Bell,
+  Building2,
+  CreditCard,
   Database,
   HeartPulse,
   Home,
@@ -10,6 +12,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Milk,
+  Palette,
   Settings,
   Shield,
   Stethoscope,
@@ -37,6 +40,7 @@ export const navGroups: NavGroup[] = [
     labelKey: "nav.groups.overview",
     items: [
       { name: "home", labelKey: "nav.overview", icon: LayoutDashboard },
+      { name: "tenants", labelKey: "nav.farms", icon: Building2 },
     ],
   },
   {
@@ -60,9 +64,11 @@ export const navGroups: NavGroup[] = [
   {
     labelKey: "nav.groups.admin",
     items: [
-      { name: "admin", labelKey: "nav.admin", icon: Shield, roles: ["Owner", "Manager"] },
+      { name: "admin", labelKey: "nav.admin", icon: Shield, roles: ["Owner", "Admin", "Manager"] },
       { name: "admin.users", labelKey: "nav.users", icon: Users, permission: "users.view" },
       { name: "admin.settings", labelKey: "nav.settings", icon: Settings, permission: "settings.update" },
+      { name: "admin.appearance", labelKey: "nav.appearance", icon: Palette, permission: "appearance.update" },
+      { name: "admin.billing", labelKey: "nav.billing", icon: CreditCard, permission: "billing.view" },
       { name: "admin.lookups", labelKey: "nav.lookups", icon: Database, permission: "lookups.view" },
     ],
   },

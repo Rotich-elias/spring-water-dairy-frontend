@@ -1,4 +1,21 @@
 /** @type {import('tailwindcss').Config} */
+/* Runtime-themed colours read RGB triplets from tokens.css / theme.ts.
+   Keeping opacity modifiers means existing classes such as
+   `bg-brand-500/20` keep working unchanged. */
+const themed = (variable) => `rgb(var(${variable}) / <alpha-value>)`;
+const brandShades = {
+  50: themed("--brand-50"),
+  100: themed("--brand-100"),
+  200: themed("--brand-200"),
+  300: themed("--brand-300"),
+  400: themed("--brand-400"),
+  500: themed("--brand-500"),
+  600: themed("--brand-600"),
+  700: themed("--brand-700"),
+  800: themed("--brand-800"),
+  900: themed("--brand-900"),
+};
+
 export default {
   content: [
     "./index.html",
@@ -15,18 +32,7 @@ export default {
           800: "#0c2c21",
           900: "#072019",
         },
-        brand: {
-          50: "#ecfdf5",
-          100: "#d1fae5",
-          200: "#a7f3d0",
-          300: "#6ee7b7",
-          400: "#34d399",
-          500: "#10b981",
-          600: "#059669",
-          700: "#047857",
-          800: "#065f46",
-          900: "#064e3b",
-        },
+        brand: brandShades,
         safety: {
           50: "#fef2f2",
           100: "#fee2e2",
@@ -40,15 +46,15 @@ export default {
           900: "#7f1d1d",
         },
         farm: {
-          50: "#f0fdf4",
-          100: "#dcfce7",
-          500: "#22c55e",
-          600: "#16a34a",
-          900: "#14532d",
+          50: themed("--brand-50"),
+          100: themed("--brand-100"),
+          500: themed("--brand-500"),
+          600: themed("--brand-600"),
+          900: themed("--brand-900"),
         },
         swd: {
-          teal: "#0f766e",
-          tealDark: "#115e59",
+          teal: themed("--teal-600"),
+          tealDark: themed("--teal-900"),
           cream: "#f6f4ec",
           slate: "#334155",
         },

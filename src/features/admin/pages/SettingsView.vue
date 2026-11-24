@@ -17,11 +17,27 @@ const error = ref("");
 
 const canManage = computed(() => auth.hasPermission("settings.update"));
 
+const FARM_PROFILE_KEYS = [
+  "farm_name",
+  "farm_address",
+  "farm_contact_phone",
+  "farm_contact_email",
+] as const;
+
+/** Keys edited in dedicated cards, or owned by the appearance screen. */
+const DEDICATED_KEYS = new Set<string>([
+  "milk_sessions_per_day",
+  ...FARM_PROFILE_KEYS,
+  "farm_logo_path",
+  "theme_mode",
+  "theme_preset",
+  "theme_primary",
+  "theme_accent",
+]);
+
 const otherSettings = computed(() =>
   Object.fromEntries(
-    Object.entries(settings.value).filter(
-      ([key]) => key !== "milk_sessions_per_day"
-    )
+    Object.entries(settings.value).filter(([key]) => !DEDICATED_KEYS.has(key))
   )
 );
 
@@ -30,7 +46,16 @@ async function load() {
   error.value = "";
   try {
     const res = await api.get<{ data: Record<string, any> }>("/settings");
-    settings.value = res.data.data;
+    settings.value = { ...res.data.data };
+    // Fill any missing profile values from the already-loaded public settings.
+    for (const key of FARM_PROFILE_KEYS) {
+      if (settings.value[key] === undefined || settings.value[key] === null) {
+        const publicValue = settingsStore.settings[key];
+        if (publicValue !== undefined && publicValue !== null) {
+          settings.value[key] = publicValue;
+        }
+      }
+    }
     if (settings.value.milk_sessions_per_day === undefined) {
       settings.value.milk_sessions_per_day = 2;
     }
@@ -73,8 +98,55 @@ onMounted(load);
       {{ message }}
     </p>
 
-    <div v-if="canManage" class="card">
-      <form @submit.prevent="save" class="space-y-4">
+    <form v-if="canManage" class="space-y-4" @submit.prevent="save">
+      <div class="card">
+        <h2 class="section-title">Farm profile</h2>
+        <p class="mb-4 text-xs text-slate-500">
+          These details identify this farm across the app and its printed records.
+        </p>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-2">
+            <label class="label" for="farm-name">Farm name</label>
+            <input
+              id="farm-name"
+              v-model="settings.farm_name"
+              type="text"
+              class="input"
+              placeholder="Spring Water Dairy"
+            />
+            <p class="text-xs text-slate-500">Shown in the sidebar and top bar.</p>
+          </div>
+          <div class="space-y-2">
+            <label class="label" for="farm-contact-phone">Contact phone</label>
+            <input
+              id="farm-contact-phone"
+              v-model="settings.farm_contact_phone"
+              type="tel"
+              class="input"
+            />
+          </div>
+          <div class="space-y-2">
+            <label class="label" for="farm-contact-email">Contact email</label>
+            <input
+              id="farm-contact-email"
+              v-model="settings.farm_contact_email"
+              type="email"
+              class="input"
+            />
+          </div>
+          <div class="space-y-2">
+            <label class="label" for="farm-address">Farm address</label>
+            <input
+              id="farm-address"
+              v-model="settings.farm_address"
+              type="text"
+              class="input"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="space-y-2 rounded-xl border border-slate-200 bg-slate-50/60 p-4">
           <label class="label" for="milk-sessions-per-day">Milk sessions per day</label>
           <select
@@ -91,7 +163,10 @@ onMounted(load);
             Existing records for other sessions are kept.
           </p>
         </div>
+      </div>
 
+      <div v-if="Object.keys(otherSettings).length" class="card">
+        <h2 class="section-title">Other settings</h2>
         <div v-for="(value, key) in otherSettings" :key="key" class="space-y-2">
           <label class="label">{{ key }}</label>
           <input
@@ -100,11 +175,12 @@ onMounted(load);
             class="input"
           />
         </div>
-        <button type="submit" class="btn-primary" :disabled="saving">
-          {{ saving ? t("common.loading") : t("common.save") }}
-        </button>
-      </form>
-    </div>
+      </div>
+
+      <button type="submit" class="btn-primary" :disabled="saving">
+        {{ saving ? t("common.loading") : t("common.save") }}
+      </button>
+    </form>
 
     <div v-else class="card">
       <p class="text-slate-500">{{ t("errors.forbidden") }}</p>

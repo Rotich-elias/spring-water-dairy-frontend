@@ -4,9 +4,11 @@ import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Droplets, LogOut, Wifi } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
+import { useSettingsStore } from "@/stores/settings";
 import { isNavActive, navGroups, type NavItem } from "@/app/navigation";
 
 const auth = useAuthStore();
+const settingsStore = useSettingsStore();
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
@@ -60,7 +62,7 @@ async function logout(): Promise<void> {
     <router-link
       :to="{ name: 'home' }"
       class="relative flex items-center gap-3 px-5 pb-5 pt-7"
-      :aria-label="t('app.name')"
+      :aria-label="settingsStore.farmName"
     >
       <span
         class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-300 to-brand-600 text-ink-900 shadow-lg shadow-brand-900/40"
@@ -69,7 +71,7 @@ async function logout(): Promise<void> {
       </span>
       <span class="min-w-0">
         <span class="block truncate text-sm font-semibold tracking-tight text-white">
-          {{ t("app.name") }}
+          {{ settingsStore.farmName }}
         </span>
         <span class="block text-[10px] font-medium uppercase tracking-[0.22em] text-white/40">
           {{ t("app.tagline") }}
