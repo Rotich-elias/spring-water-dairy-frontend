@@ -128,7 +128,7 @@ export const useTenantStore = defineStore("tenant", () => {
     }
   }
 
-  async function subscribe(code: string): Promise<void> {
+  async function subscribe(code: string): Promise<boolean> {
     saving.value = true;
     error.value = "";
     try {
@@ -142,14 +142,16 @@ export const useTenantStore = defineStore("tenant", () => {
         current: plan.code === billing.value?.plan?.code,
       }));
       await loadBilling();
+      return true;
     } catch (e) {
       error.value = apiMessage(e);
+      return false;
     } finally {
       saving.value = false;
     }
   }
 
-  async function cancel(): Promise<void> {
+  async function cancel(): Promise<boolean> {
     saving.value = true;
     error.value = "";
     try {
@@ -158,8 +160,10 @@ export const useTenantStore = defineStore("tenant", () => {
       );
       billing.value = response.data.data;
       await loadBilling();
+      return true;
     } catch (e) {
       error.value = apiMessage(e);
+      return false;
     } finally {
       saving.value = false;
     }

@@ -138,6 +138,7 @@ export interface Subscription {
 
 export interface BillingSummary {
   plan: Plan;
+  subscribed_plan: Plan;
   subscription: Subscription | null;
   limits: Record<string, number | null>;
   usage: Record<string, number>;

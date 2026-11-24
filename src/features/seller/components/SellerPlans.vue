@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { CheckCircle2, Loader2, Pencil, Plus, Power } from "lucide-vue-next";
+import { CheckCircle2, Loader2, Pencil, Plus, Power, Trash2 } from "lucide-vue-next";
 import { getErrorMessage, type Plan } from "@/api";
 import {
   createSellerPlan,
@@ -172,16 +172,34 @@ async function save(): Promise<void> {
   }
 }
 
-async function deactivate(plan: Plan): Promise<void> {
-  if (!window.confirm(t("seller.plans.deactivate_confirm"))) return;
+async function activate(plan: Plan): Promise<void> {
+  saving.value = true;
+  error.value = null;
+  notice.value = null;
+  try {
+    await updateSellerPlan(plan.id, { is_active: true });
+    await seller.loadPlans();
+    notice.value = "seller.plans.activated";
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, t("errors.unexpected"));
+  } finally {
+    saving.value = false;
+  }
+}
+
+async function remove(plan: Plan): Promise<void> {
+  if (!window.confirm(t("seller.plans.remove_confirm", { name: plan.name }))) return;
+  saving.value = true;
   error.value = null;
   notice.value = null;
   try {
     const result = await deleteSellerPlan(plan.id);
     await seller.loadPlans();
-    notice.value = result?.deactivated ? "seller.plans.deactivated" : "seller.plans.deactivated";
+    notice.value = result.deactivated ? "seller.plans.deactivated" : "seller.plans.deleted";
   } catch (e: unknown) {
     error.value = getErrorMessage(e, t("errors.unexpected"));
+  } finally {
+    saving.value = false;
   }
 }
 
@@ -318,13 +336,23 @@ onMounted(() => {
                     {{ t("common.edit") }}
                   </button>
                   <button
-                    v-if="plan.is_active"
+                    v-if="!plan.is_active"
                     type="button"
-                    class="btn-ghost btn-sm text-safety-600"
-                    @click="deactivate(plan)"
+                    class="btn-ghost btn-sm"
+                    :disabled="saving"
+                    @click="activate(plan)"
                   >
                     <Power :size="14" />
-                    {{ t("seller.plans.deactivate") }}
+                    {{ t("seller.plans.activate") }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-ghost btn-sm text-safety-600"
+                    :disabled="saving"
+                    @click="remove(plan)"
+                  >
+                    <Trash2 :size="14" />
+                    {{ t("seller.plans.remove") }}
                   </button>
                 </div>
               </td>

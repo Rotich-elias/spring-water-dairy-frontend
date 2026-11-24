@@ -325,6 +325,9 @@ onMounted(async () => {
               <td>
                 <p class="text-sm font-medium text-slate-800">{{ farm.plan_name || t("seller.farms.no_plan") }}</p>
                 <p class="text-xs text-slate-500">{{ farm.subscription_status || "—" }}</p>
+                <p v-if="farm.subscription_canceled_at" class="text-xs font-medium text-amber-700">
+                  {{ t("billing.cancel_scheduled") }}
+                </p>
               </td>
               <td>
                 <span class="badge" :class="farm.status === 'active' ? 'badge-brand' : 'badge-slate'">
@@ -375,7 +378,11 @@ onMounted(async () => {
                       {{ t(farm.status === "active" ? "seller.farms.suspend" : "seller.farms.activate") }}
                     </button>
                     <button
-                      v-if="farm.subscription_status && farm.subscription_status !== 'cancelled'"
+                      v-if="
+                        farm.subscription_status &&
+                        farm.subscription_status !== 'cancelled' &&
+                        !farm.subscription_canceled_at
+                      "
                       type="button"
                       class="btn-ghost btn-sm text-safety-600"
                       :disabled="working"

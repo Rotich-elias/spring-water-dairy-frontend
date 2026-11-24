@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted } from "vue";
+import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
 import { useTenantStore } from "@/stores/tenant";
@@ -12,7 +12,9 @@ const canView = computed(() => auth.hasPermission("billing.view"));
 const canManage = computed(() => auth.hasPermission("billing.manage"));
 
 const plan = computed(() => tenantStore.billing?.plan ?? null);
+const subscribedPlan = computed(() => tenantStore.billing?.subscribed_plan ?? null);
 const subscription = computed(() => tenantStore.billing?.subscription ?? null);
+const notice = ref<string | null>(null);
 
 const USAGE_KEYS = [
   "animals",
@@ -21,19 +23,30 @@ const USAGE_KEYS = [
   "alert_rules",
 ] as const;
 
+const cancelScheduled = computed(() => {
+  if (!subscription.value?.canceled_at) return false;
+  const end = subscription.value.current_period_end;
+  if (!end) return true;
+  return Date.parse(end) > Date.now();
+});
+
+const subscriptionStatus = computed(() =>
+  cancelScheduled.value
+    ? t("billing.cancel_scheduled")
+    : statusText(subscription.value?.status ?? ""),
+);
+
 const canCancel = computed(
   () =>
     canManage.value &&
     ["active", "trialing"].includes(
       subscription.value?.status?.toLowerCase() ?? "",
-    ),
+    ) &&
+    !cancelScheduled.value,
 );
 
 function usageLabel(key: string): string {
-  if ((USAGE_KEYS as readonly string[]).includes(key)) {
-    return t(`billing.${key}`);
-  }
-  return t(`tenants.usage.${key}`, key.replace(/_/g, " "));
+  return t(`billing.${key}`);
 }
 
 function usageValue(key: string): number {
@@ -66,7 +79,7 @@ function formatDate(value?: string | null): string {
 
 function statusText(status: string): string {
   const normalized = status.toLowerCase();
-  if (["active", "trialing", "cancelled"].includes(normalized)) {
+  if (["active", "trialing", "cancelled", "expired"].includes(normalized)) {
     return t(`billing.${normalized}`);
   }
   return status;
@@ -85,7 +98,7 @@ function isCurrent(code: string): boolean {
 
 function limitSummary(limits: Record<string, number | null>): string {
   const entries = Object.entries(limits ?? {});
-  if (!entries.length) return t("tenants.billing.no_limits", "No listed limits");
+  if (!entries.length) return t("billing.no_limits");
   return entries
     .map(([key, limit]) => `${usageLabel(key)}: ${limit ?? "∞"}`)
     .join(" · ");
@@ -97,12 +110,18 @@ function price(monthly: number): string {
 
 async function subscribe(code: string): Promise<void> {
   if (isCurrent(code)) return;
-  await tenantStore.subscribe(code);
+  notice.value = null;
+  if (await tenantStore.subscribe(code)) {
+    notice.value = "billing.subscribe_success";
+  }
 }
 
 async function cancelSubscription(): Promise<void> {
   if (!window.confirm(t("billing.confirm_cancel"))) return;
-  await tenantStore.cancel();
+  notice.value = null;
+  if (await tenantStore.cancel()) {
+    notice.value = "billing.cancel_success";
+  }
 }
 
 onMounted(() => {
@@ -131,6 +150,10 @@ onMounted(() => {
         {{ tenantStore.error }}
       </p>
 
+      <div v-if="notice" class="alert-success mb-4" role="status">
+        {{ t(notice) }}
+      </div>
+
       <p v-if="tenantStore.loading && !tenantStore.billing" class="card text-slate-500">
         {{ t("common.loading") }}
       </p>
@@ -143,14 +166,28 @@ onMounted(() => {
             <div>
               <p class="text-xl font-bold text-slate-900">{{ plan.name }}</p>
               <p class="mt-1 text-sm text-slate-500">{{ plan.description }}</p>
+              <p
+                v-if="subscribedPlan && subscribedPlan.code !== plan.code"
+                class="mt-2 text-xs font-medium text-amber-700"
+              >
+                {{
+                  t("billing.fallback_notice", {
+                    subscribed: subscribedPlan.name,
+                    effective: plan.name,
+                  })
+                }}
+              </p>
+              <p v-if="cancelScheduled" class="mt-1 text-xs font-medium text-amber-700">
+                {{ t("billing.cancel_scheduled_notice", { date: formatDate(endDate) }) }}
+              </p>
             </div>
             <div class="text-right">
               <p class="label">{{ t("billing.price") }}</p>
               <p class="text-2xl font-bold text-brand-700">
-                {{ price(plan.price_monthly) }}
+                KES {{ price(plan.price_monthly) }}
               </p>
               <p class="text-xs text-slate-500">
-                {{ t("tenants.billing.per_month", "per month") }}
+                {{ t("billing.per_month") }}
               </p>
             </div>
           </div>
@@ -160,21 +197,23 @@ onMounted(() => {
               <dt class="label">{{ t("billing.status") }}</dt>
               <dd class="font-semibold capitalize text-slate-800">
                 <template v-if="subscription">
-                  {{ statusText(subscription.status) }}
+                  {{ subscriptionStatus }}
                 </template>
                 <template v-else>
-                  {{ t("tenants.billing.no_subscription", "No subscription") }}
+                  {{ t("billing.no_subscription") }}
                 </template>
               </dd>
             </div>
             <div>
-              <dt class="label">{{ t("tenants.billing.trial_ends", "Trial ends") }}</dt>
+              <dt class="label">{{ t("billing.trial_ends") }}</dt>
               <dd class="font-semibold text-slate-800">
                 {{ formatDate(subscription?.trial_ends_at) }}
               </dd>
             </div>
             <div>
-              <dt class="label">{{ t("tenants.billing.ends", "Ends") }}</dt>
+              <dt class="label">
+                {{ cancelScheduled ? t("billing.ends_on") : t("billing.ends") }}
+              </dt>
               <dd class="font-semibold text-slate-800">{{ formatDate(endDate) }}</dd>
             </div>
           </dl>
@@ -188,9 +227,17 @@ onMounted(() => {
           >
             {{ t("billing.cancel") }}
           </button>
+          <button
+            v-else-if="cancelScheduled"
+            type="button"
+            class="btn-outline mt-4"
+            disabled
+          >
+            {{ t("billing.cancel_scheduled") }}
+          </button>
         </template>
         <p v-else class="text-sm text-slate-500">
-          {{ t("tenants.billing.no_plan", "No plan information available.") }}
+          {{ t("billing.no_plan") }}
         </p>
       </section>
 
@@ -242,9 +289,9 @@ onMounted(() => {
             <p class="text-sm text-slate-500">{{ option.description }}</p>
 
             <p class="text-2xl font-bold text-brand-700">
-              {{ price(option.price_monthly) }}
+              KES {{ price(option.price_monthly) }}
               <span class="text-xs font-normal text-slate-500">
-                {{ t("tenants.billing.per_month", "per month") }}
+                {{ t("billing.per_month") }}
               </span>
             </p>
 

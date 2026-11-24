@@ -26,6 +26,8 @@ export interface SellerFarm {
   plan_code: string | null;
   plan_name: string | null;
   subscription_status: string | null;
+  subscription_canceled_at?: string | null;
+  subscription_current_period_end?: string | null;
   usage: SellerFarmUsage;
   created_at: string;
 }
@@ -96,8 +98,15 @@ export function updateSellerPlan(id: number, payload: Partial<PlanInput>): Promi
   return api.patch(`/seller/plans/${id}`, payload).then((r) => unwrap<Plan>(r.data));
 }
 
-export function deleteSellerPlan(id: number): Promise<Plan> {
-  return api.delete(`/seller/plans/${id}`).then((r) => unwrap<Plan>(r.data));
+export interface SellerPlanDeleteResult extends Plan {
+  deactivated: boolean;
+}
+
+export function deleteSellerPlan(id: number): Promise<SellerPlanDeleteResult> {
+  return api.delete(`/seller/plans/${id}`).then((r) => ({
+    ...unwrap<Plan>(r.data),
+    deactivated: Boolean((r.data as { deactivated?: boolean }).deactivated),
+  }));
 }
 
 export function getSellerFarms(): Promise<SellerFarm[]> {
