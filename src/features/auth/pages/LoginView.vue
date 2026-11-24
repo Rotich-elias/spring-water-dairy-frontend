@@ -167,7 +167,13 @@ onMounted(() => {
           <span>{{ displayedError }}</span>
         </div>
 
-        <form class="mt-7 space-y-5" @submit.prevent="handleLogin">
+        <form
+          id="login-form"
+          name="login-form"
+          class="mt-7 space-y-5"
+          autocomplete="on"
+          @submit.prevent="handleLogin"
+        >
           <div>
             <label class="label" for="login">{{ t("auth.email_or_phone") }}</label>
             <div class="relative">
@@ -178,6 +184,7 @@ onMounted(() => {
               <input
                 id="login"
                 v-model="loginId"
+                name="username"
                 type="text"
                 class="input pl-10"
                 autocapitalize="none"
@@ -199,6 +206,7 @@ onMounted(() => {
               <input
                 id="password"
                 v-model="password"
+                name="password"
                 :type="showPassword ? 'text' : 'password'"
                 class="input pl-10 pr-12"
                 autocomplete="current-password"
