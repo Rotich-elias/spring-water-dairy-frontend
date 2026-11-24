@@ -1,6 +1,9 @@
-# Spring Water Dairy — Frontend
+# TetoDairy — Frontend
 
-Mobile-first Vue 3 PWA for the Spring Water Dairy herd-management API.
+Mobile-first Vue 3 PWA for the **TetoDairy** herd-management platform, a product of
+**Teto Technologies**. The public landing page is a pre-sales site with a contact form;
+existing farms keep their own workspace name (for example, Spring Water Dairy) inside
+the authenticated app shell.
 
 ## Stack
 
@@ -9,6 +12,9 @@ Mobile-first Vue 3 PWA for the Spring Water Dairy herd-management API.
 - Tailwind CSS for styling.
 - Dexie/IndexedDB for offline data and queued writes.
 - Vite for development and production builds.
+- English and Swahili UI copy in `src/locales`.
+
+No new dependencies are required for the public site or seller console.
 
 ## Local development
 
@@ -34,11 +40,43 @@ npm run preview
 
 `npm run build` runs the type check and produces `dist/`.
 
+## Public site
+
+- `/` fetches `GET /site` and `GET /plans`. If the API is unavailable, translated
+  defaults keep the landing page usable.
+- The two "Get started" calls to action and each plan's "Choose plan" button scroll to
+  `#contact`.
+- The contact form posts to `POST /contact-inquiries`, validates locally, shows API field
+  errors, and explains rate limiting (5 requests/minute).
+- The footer links to `/seller/login?redirect=/seller` for Platform Admin sign-in.
+- Branding constants: product `TetoDairy`, parent `Teto Technologies` (`https://teto.co.ke`),
+  footer text exactly `Powered by Teto Technologies`.
+
+## Seller console
+
+- `/seller/login` reuses the login screen and requires a Platform Admin account.
+- `/seller` is guarded by `meta.roles: ["Platform Admin"]`. Other roles are sent to the
+  dashboard with a friendly notice.
+- Tabs: overview, site info, landing content, plans & pricing, farms & subscriptions,
+  and inquiries. All seller calls use the same `/auth/login` token.
+- Landing content arrays are edited with repeatable rows, not raw JSON.
+
+### Farm impersonation
+
+1. "Open farm as owner" asks for a reason and calls the impersonation endpoint.
+2. The original token is saved in `localStorage["swd.seller_token"]` and metadata in
+   `localStorage["swd.impersonation"]`; `swd.token` is replaced with the farm token and the
+   page reloads at `/dashboard`.
+3. A fixed banner shows the impersonated user, farm and expiry. Returning restores the
+   seller token, calls the end endpoint, clears both keys and reloads `/seller`.
+4. A 401 while impersonating restores the seller session and redirects to `/seller` with a
+   notice. Normal 401 handling is unchanged.
+
 ## Offline behaviour
 
-- Mutating requests that fail while offline are queued in the Pinia offline store and
+- Mutating farm requests that fail while offline are queued in the Pinia offline store and
   replayed after connectivity returns.
-- Authentication and sync writes are never queued.
+- Authentication, sync, seller-console and contact-inquiry writes are never queued.
 - The service worker caches the app shell but not API or authenticated responses.
 - Sync uses `/sync/changes` and tracks state in IndexedDB.
 
@@ -46,11 +84,11 @@ npm run preview
 
 | Path | Purpose |
 | --- | --- |
-| `src/app` | App shell, router and layout. |
-| `src/features` | Feature modules (animals, milk, breeding, calves, health, dashboard, reports, users, setup, alerts). |
-| `src/api` | Axios client, error handling and offline queue helpers. |
-| `src/stores` | Pinia stores, including offline and auth state. |
-| `src/components` | Shared UI components. |
+| `src/app` | App shell, router, navigation and i18n. |
+| `src/features` | Feature modules (animals, milk, breeding, calves, health, dashboard, reports, users, setup, alerts, landing, auth, seller). |
+| `src/api` | Axios client, error handling, impersonation helpers and offline queue helpers. |
+| `src/stores` | Pinia stores, including auth, public site, seller state and offline state. |
+| `src/components` | Shared UI components (sidebar, top bar, bottom navigation). |
 | `src/locales` | English and Swahili translations. |
 
 ## Related repositories

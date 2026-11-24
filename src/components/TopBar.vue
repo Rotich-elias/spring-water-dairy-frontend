@@ -7,6 +7,7 @@ import {
   Bell,
   ChevronDown,
   Droplets,
+  LayoutDashboard,
   LogOut,
   Settings,
 } from "lucide-vue-next";
@@ -109,19 +110,22 @@ onUnmounted(() => document.removeEventListener("click", handleOutsideClick));
         v-else
         :to="{ name: 'home' }"
         class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 text-white shadow-sm lg:hidden"
-        :aria-label="settingsStore.farmName"
+        :aria-label="`${t('app.name')} — ${settingsStore.farmName}`"
       >
         <Droplets :size="18" />
       </router-link>
 
-      <!-- Title -->
+      <!-- Title / platform branding / active workspace -->
       <div class="min-w-0 flex-1">
         <p class="hidden text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-700 lg:block">
-          {{ settingsStore.farmName }}
+          {{ t("app.name") }} <span class="text-slate-400">·</span> {{ t("app.parent_company") }}
         </p>
         <h1 class="truncate text-base font-semibold tracking-tight text-slate-900 sm:text-lg">
           {{ title }}
         </h1>
+        <p class="mt-0.5 truncate text-[11px] text-slate-500">
+          {{ t("shell.active_workspace") }}: {{ settingsStore.farmName }}
+        </p>
       </div>
 
       <!-- Date -->
@@ -192,6 +196,16 @@ onUnmounted(() => document.removeEventListener("click", handleOutsideClick));
             >
               <Settings :size="16" />
               {{ t("nav.settings") }}
+            </router-link>
+            <router-link
+              v-if="auth.isPlatformAdmin"
+              :to="{ name: 'seller' }"
+              class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-600 transition hover:bg-slate-50"
+              role="menuitem"
+              @click="closeMenu"
+            >
+              <LayoutDashboard :size="16" />
+              {{ t("nav.seller_console") }}
             </router-link>
             <button
               type="button"

@@ -1,17 +1,35 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import { api, type LoginResponse, type User } from "@/api";
+import {
+  api,
+  IMPERSONATION_KEY,
+  SELLER_TOKEN_KEY,
+  TOKEN_KEY,
+  type LoginResponse,
+  type User,
+} from "@/api";
 
 export const useAuthStore = defineStore("auth", () => {
-  const token = ref<string | null>(localStorage.getItem("swd.token") ?? null);
+  const token = ref<string | null>(localStorage.getItem(TOKEN_KEY) ?? null);
   const user = ref<User | null>(null);
 
   const isAuthenticated = computed(() => !!token.value);
   const permissions = computed(() => user.value?.permissions ?? []);
   const role = computed(() => user.value?.role ?? null);
+  const isPlatformAdmin = computed(
+    () => user.value?.is_platform_admin === true || role.value === "Platform Admin",
+  );
+  const isSeller = computed(
+    () => user.value?.is_seller === true || isPlatformAdmin.value,
+  );
 
   function hasPermission(permission: string): boolean {
     return permissions.value.includes(permission);
+  }
+
+  function forgetImpersonation(): void {
+    localStorage.removeItem(SELLER_TOKEN_KEY);
+    localStorage.removeItem(IMPERSONATION_KEY);
   }
 
   async function login(login: string, password: string): Promise<LoginResponse> {
@@ -23,7 +41,8 @@ export const useAuthStore = defineStore("auth", () => {
     const data = response.data.data;
     token.value = data.token;
     user.value = data.user;
-    localStorage.setItem("swd.token", data.token);
+    localStorage.setItem(TOKEN_KEY, data.token);
+    forgetImpersonation();
     return data;
   }
 
@@ -37,22 +56,21 @@ export const useAuthStore = defineStore("auth", () => {
     try {
       await api.post("/auth/logout");
     } finally {
-      token.value = null;
-      user.value = null;
-      localStorage.removeItem("swd.token");
+      clear();
     }
   }
 
   function setToken(t: string, u: User): void {
     token.value = t;
     user.value = u;
-    localStorage.setItem("swd.token", t);
+    localStorage.setItem(TOKEN_KEY, t);
   }
 
   function clear(): void {
     token.value = null;
     user.value = null;
-    localStorage.removeItem("swd.token");
+    localStorage.removeItem(TOKEN_KEY);
+    forgetImpersonation();
   }
 
   return {
@@ -61,6 +79,8 @@ export const useAuthStore = defineStore("auth", () => {
     isAuthenticated,
     permissions,
     role,
+    isPlatformAdmin,
+    isSeller,
     hasPermission,
     login,
     fetchMe,

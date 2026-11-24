@@ -1,7 +1,7 @@
 {
-  "name": "Spring Water Dairy",
-  "short_name": "SWD",
-  "description": "Herd, milk, breeding and health management for the farm.",
+  "name": "TetoDairy",
+  "short_name": "TetoDairy",
+  "description": "Herd, milk, breeding and health management for the farm, by Teto Technologies.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#072019",

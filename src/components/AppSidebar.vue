@@ -2,7 +2,7 @@
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { Droplets, LogOut, Wifi } from "lucide-vue-next";
+import { Building2, Droplets, LogOut, Wifi } from "lucide-vue-next";
 import { useAuthStore } from "@/stores/auth";
 import { useSettingsStore } from "@/stores/settings";
 import { isNavActive, navGroups, type NavItem } from "@/app/navigation";
@@ -61,8 +61,8 @@ async function logout(): Promise<void> {
 
     <router-link
       :to="{ name: 'home' }"
-      class="relative flex items-center gap-3 px-5 pb-5 pt-7"
-      :aria-label="settingsStore.farmName"
+      class="relative flex items-center gap-3 px-5 pb-4 pt-7"
+      :aria-label="t('app.name')"
     >
       <span
         class="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-brand-300 to-brand-600 text-ink-900 shadow-lg shadow-brand-900/40"
@@ -71,13 +71,28 @@ async function logout(): Promise<void> {
       </span>
       <span class="min-w-0">
         <span class="block truncate text-sm font-semibold tracking-tight text-white">
-          {{ settingsStore.farmName }}
+          {{ t("app.name") }}
         </span>
-        <span class="block text-[10px] font-medium uppercase tracking-[0.22em] text-white/40">
-          {{ t("app.tagline") }}
+        <span class="block truncate text-[10px] font-medium uppercase tracking-[0.18em] text-white/40">
+          {{ t("app.powered_by") }}
         </span>
       </span>
     </router-link>
+
+    <!-- The active farm is workspace context, distinct from the platform brand. -->
+    <div
+      class="relative mx-4 mb-2 flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+    >
+      <Building2 :size="15" class="shrink-0 text-brand-300" />
+      <span class="min-w-0">
+        <span class="block text-[9px] font-semibold uppercase tracking-[0.18em] text-white/40">
+          {{ t("shell.active_workspace") }}
+        </span>
+        <span class="block truncate text-xs font-medium text-white/85">
+          {{ settingsStore.farmName }}
+        </span>
+      </span>
+    </div>
 
     <nav class="relative flex-1 overflow-y-auto px-3 pb-4 no-scrollbar" :aria-label="t('nav.main')">
       <div v-for="group in visibleGroups" :key="group.labelKey">

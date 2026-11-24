@@ -4,11 +4,20 @@ import { useRouter } from "vue-router";
 import { computed } from "vue";
 import { useI18n } from "vue-i18n";
 
+interface AdminCard {
+  name: string;
+  label: string;
+  icon: string;
+  permission?: string;
+  platformAdmin?: boolean;
+  descriptionKey?: string;
+}
+
 const auth = useAuthStore();
 const router = useRouter();
 const { t } = useI18n();
 
-const items = [
+const items: AdminCard[] = [
   {
     name: "admin.users",
     label: t("nav.users") || "Users",
@@ -27,10 +36,20 @@ const items = [
     icon: "",
     permission: "lookups.view",
   },
+  {
+    name: "seller",
+    label: t("nav.seller_console"),
+    icon: "",
+    platformAdmin: true,
+    descriptionKey: "seller.quick_link_description",
+  },
 ];
 
-const canEnter = (item: (typeof items)[number]) =>
-  !item.permission || auth.hasPermission(item.permission);
+const canEnter = (item: AdminCard) =>
+  (!item.permission || auth.hasPermission(item.permission)) &&
+  (!item.platformAdmin || auth.isPlatformAdmin);
+
+const visibleItems = computed(() => items.filter(canEnter));
 </script>
 
 <template>
@@ -39,7 +58,7 @@ const canEnter = (item: (typeof items)[number]) =>
       <h1 class="text-xl font-bold text-slate-900">{{ t("nav.admin") }}</h1>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
       <div
         v-for="item in items"
         :key="item.name"
@@ -51,12 +70,14 @@ const canEnter = (item: (typeof items)[number]) =>
           {{ item.icon }}
         </div>
         <h3 class="mt-4 text-lg font-semibold text-slate-900">{{ item.label }}</h3>
-        <p class="text-sm text-slate-500">Manage {{ item.label.toLowerCase() }}</p>
+        <p class="text-sm text-slate-500">
+          {{ item.descriptionKey ? t(item.descriptionKey) : `Manage ${item.label.toLowerCase()}` }}
+        </p>
       </div>
     </div>
 
-    <div v-if="!items.some((i) => canEnter(i))" class="mt-8 card">
-      <p class="text-slate-500">No admin sections available for your role.</p>
+    <div v-if="visibleItems.length === 0" class="mt-8 card">
+      <p class="text-slate-500">{{ t("common.empty") }}</p>
     </div>
   </div>
 </template>

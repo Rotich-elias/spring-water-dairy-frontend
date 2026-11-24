@@ -1,7 +1,15 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 
-export type Role = "Owner" | "Admin" | "Manager" | "Milker" | "AI Tech" | "Vet" | "Viewer";
+export type Role =
+  | "Platform Admin"
+  | "Owner"
+  | "Admin"
+  | "Manager"
+  | "Milker"
+  | "AI Tech"
+  | "Vet"
+  | "Viewer";
 
 interface RouteMeta {
   requiresAuth?: boolean;
@@ -16,13 +24,29 @@ const routes: RouteRecordRaw[] = [
     path: "/",
     name: "landing",
     component: () => import("@/features/landing/pages/LandingView.vue"),
-    meta: { title: "Spring Water Dairy", hideForRoles: [] },
+    meta: { title: "TetoDairy", hideForRoles: [] },
   },
   {
     path: "/login",
     name: "login",
     component: () => import("@/features/auth/pages/LoginView.vue"),
     meta: { title: "Login", hideForRoles: [] },
+  },
+  {
+    path: "/seller/login",
+    name: "seller.login",
+    component: () => import("@/features/auth/pages/LoginView.vue"),
+    meta: { title: "Seller sign in", hideForRoles: [] },
+  },
+  {
+    path: "/seller",
+    name: "seller",
+    component: () => import("@/features/seller/pages/SellerView.vue"),
+    meta: {
+      requiresAuth: true,
+      roles: ["Platform Admin"],
+      title: "Seller Console",
+    },
   },
   {
     path: "/dashboard",
@@ -279,7 +303,13 @@ router.beforeEach((to, from, next) => {
 
   const currentRole = String(auth.role ?? "");
   const roles = (to.meta?.roles as Role[] | undefined) ?? [];
-  if (roles.length && !roles.includes(currentRole as Role)) {
+  const roleAllowed = roles.some((required) =>
+    required === "Platform Admin" ? auth.isPlatformAdmin : required === currentRole,
+  );
+  if (roles.length && !roleAllowed) {
+    if (to.name === "seller") {
+      return next({ name: "home", query: { notice: "seller_access_required" } });
+    }
     return next({ name: "home" });
   }
 

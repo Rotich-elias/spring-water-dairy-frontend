@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
-import { useRouter } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import {
   ArrowRight,
   CheckCircle2,
@@ -17,6 +17,7 @@ import { useAuthStore } from "@/stores/auth";
 import { useAuth } from "@/features/auth/composables/useAuth";
 
 const { t } = useI18n();
+const route = useRoute();
 const router = useRouter();
 const auth = useAuthStore();
 const { login, loggingIn, error } = useAuth();
@@ -24,8 +25,27 @@ const { login, loggingIn, error } = useAuth();
 const loginId = ref("");
 const password = ref("");
 const showPassword = ref(false);
+const accessError = ref<string | null>(null);
 
-const redirect = router.currentRoute.value.query.redirect ?? "/";
+const isSellerLogin = computed(() => route.name === "seller.login");
+
+/** Only accept internal paths from the redirect query. */
+const redirectTarget = computed(() => {
+  const raw = route.query.redirect;
+  const path = typeof raw === "string" && raw ? raw : isSellerLogin.value ? "/seller" : "/";
+  return path.startsWith("/") && !path.startsWith("//") ? path : "/";
+});
+
+const heading = computed(() =>
+  isSellerLogin.value ? t("auth.seller_title") : t("auth.login"),
+);
+const subtitle = computed(() =>
+  isSellerLogin.value ? t("auth.seller_subtitle") : t("auth.sign_in_subtitle"),
+);
+const eyebrow = computed(() =>
+  isSellerLogin.value ? t("auth.seller_welcome_back") : t("auth.welcome_back"),
+);
+const displayedError = computed(() => accessError.value ?? error.value);
 
 const features = computed(() => [
   t("auth.feature_herd"),
@@ -33,17 +53,38 @@ const features = computed(() => [
   t("auth.feature_offline"),
 ]);
 
-async function handleLogin(): Promise<void> {
-  const result = await login(loginId.value, password.value);
-  if (result) {
-    await router.push(redirect as string);
+async function goToDestination(): Promise<void> {
+  const target = redirectTarget.value;
+  if (target.startsWith("/seller") && !auth.isPlatformAdmin) {
+    accessError.value = t("seller.access_required_notice");
+    await router.push({ name: "home", query: { notice: "seller_access_required" } });
+    return;
   }
+  await router.push(target);
+}
+
+async function handleLogin(): Promise<void> {
+  accessError.value = null;
+  const result = await login(loginId.value, password.value);
+  if (!result) return;
+
+  if (isSellerLogin.value && !auth.isPlatformAdmin) {
+    // Never leave a farm session behind for someone who tried the seller URL.
+    auth.clear();
+    accessError.value = t("seller.access_required_notice");
+    return;
+  }
+
+  await goToDestination();
 }
 
 onMounted(() => {
-  if (auth.isAuthenticated) {
-    void router.push({ name: "home" });
+  if (!auth.isAuthenticated) return;
+  if (isSellerLogin.value && !auth.isPlatformAdmin) {
+    accessError.value = t("seller.access_required_notice");
+    return;
   }
+  void goToDestination();
 });
 </script>
 
@@ -71,14 +112,14 @@ onMounted(() => {
         <div>
           <p class="text-sm font-semibold tracking-tight">{{ t("app.name") }}</p>
           <p class="text-[10px] font-medium uppercase tracking-[0.24em] text-white/40">
-            {{ t("app.tagline") }}
+            {{ t("app.powered_by") }}
           </p>
         </div>
       </div>
 
       <div class="relative max-w-lg">
         <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-brand-300">
-          {{ t("app.tagline") }}
+          {{ isSellerLogin ? t("seller.title") : t("app.tagline") }}
         </p>
         <h2 class="text-balance text-4xl font-bold leading-[1.1] tracking-tight xl:text-5xl">
           {{ t("auth.hero_title") }}
@@ -99,7 +140,7 @@ onMounted(() => {
 
       <div class="relative flex items-center gap-2 text-xs text-white/40">
         <ShieldCheck :size="15" class="text-brand-300" />
-        {{ t("auth.secure_access") }}
+        {{ isSellerLogin ? t("seller.access_required") : t("auth.secure_access") }}
       </div>
     </section>
 
@@ -116,19 +157,19 @@ onMounted(() => {
           <div>
             <p class="text-sm font-semibold text-slate-900">{{ t("app.name") }}</p>
             <p class="text-[10px] font-medium uppercase tracking-[0.2em] text-slate-400">
-              {{ t("app.tagline") }}
+              {{ t("app.powered_by") }}
             </p>
           </div>
         </div>
 
-        <p class="eyebrow">{{ t("auth.welcome_back") }}</p>
-        <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ t("auth.login") }}</h1>
+        <p class="eyebrow">{{ eyebrow }}</p>
+        <h1 class="mt-2 text-3xl font-bold tracking-tight text-slate-900">{{ heading }}</h1>
         <p class="mt-2 text-sm leading-relaxed text-slate-500">
-          {{ t("auth.sign_in_subtitle") }}
+          {{ subtitle }}
         </p>
 
-        <div v-if="error" class="alert-error mt-6" role="alert">
-          <span>{{ error }}</span>
+        <div v-if="displayedError" class="alert-error mt-6" role="alert">
+          <span>{{ displayedError }}</span>
         </div>
 
         <form class="mt-7 space-y-5" @submit.prevent="handleLogin">
@@ -183,7 +224,7 @@ onMounted(() => {
 
           <button type="submit" class="btn-primary btn-lg group w-full" :disabled="loggingIn">
             <Loader2 v-if="loggingIn" :size="18" class="animate-spin" />
-            <span>{{ loggingIn ? t("auth.signing_in") : t("auth.login") }}</span>
+            <span>{{ loggingIn ? t("auth.signing_in") : heading }}</span>
             <ArrowRight
               v-if="!loggingIn"
               :size="18"
@@ -194,7 +235,7 @@ onMounted(() => {
 
         <p class="mt-8 flex items-center justify-center gap-2 text-center text-xs text-slate-400">
           <ShieldCheck :size="14" />
-          {{ t("auth.secure_access") }}
+          {{ t("app.powered_by") }}
         </p>
       </div>
     </section>

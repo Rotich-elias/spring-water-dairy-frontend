@@ -64,6 +64,7 @@ export const navGroups: NavGroup[] = [
   {
     labelKey: "nav.groups.admin",
     items: [
+      { name: "seller", labelKey: "nav.seller_console", icon: LayoutDashboard, roles: ["Platform Admin"] },
       { name: "admin", labelKey: "nav.admin", icon: Shield, roles: ["Owner", "Admin", "Manager"] },
       { name: "admin.users", labelKey: "nav.users", icon: Users, permission: "users.view" },
       { name: "admin.settings", labelKey: "nav.settings", icon: Settings, permission: "settings.update" },

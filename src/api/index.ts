@@ -4,8 +4,19 @@
    types live here and mirror the contract. These will be replaced by
    generated code in Phase 0 acceptance. */
 
-export { api, API_BASE_URL, getFieldErrors } from "./client";
-export type { ApiError, ApiErrorResponse } from "./client";
+export {
+  api,
+  API_BASE_URL,
+  getFieldErrors,
+  getErrorMessage,
+  consumeSellerRestore,
+  readImpersonation,
+  restoreSellerSession,
+  TOKEN_KEY,
+  SELLER_TOKEN_KEY,
+  IMPERSONATION_KEY,
+} from "./client";
+export type { ApiError, ApiErrorResponse, ImpersonationMeta } from "./client";
 export { createClientUuid } from "./uuid";
 
 /* Minimal shared types used before codegen is generated from openapi.yaml. */
@@ -19,6 +30,9 @@ export interface User {
   email_verified_at?: string | null;
   created_at?: string;
   updated_at?: string;
+  /** Set by the API for the platform buyer account. */
+  is_platform_admin?: boolean;
+  is_seller?: boolean;
 }
 
 export interface LoginResponse {
@@ -68,7 +82,46 @@ export interface Plan {
   price_monthly: number;
   limits: Record<string, number | null>;
   is_active: boolean;
+  sort_order?: number;
   current?: boolean;
+  deactivated?: boolean;
+}
+
+/** A landing-page row. The API accepts strings or flexible key/value objects. */
+export type SiteItem = string | Record<string, unknown>;
+
+export interface SiteInfo {
+  platform_name: string;
+  parent_company: string;
+  parent_company_short: string;
+  powered_by_label: string;
+  parent_company_url: string;
+  business_name: string;
+  business_email: string;
+  business_phone: string;
+  business_address: string;
+  business_logo_path: string;
+  hero_title: string;
+  hero_subtitle: string;
+  final_title: string;
+  final_subtitle: string;
+  feature_items: SiteItem[];
+  step_items: SiteItem[];
+  faq_items: SiteItem[];
+  trust_items: SiteItem[];
+}
+
+export type SiteInfoPayload = Partial<SiteInfo>;
+
+export interface ContactInquiry {
+  id: number;
+  name: string;
+  farm_name: string | null;
+  email: string;
+  phone: string | null;
+  message: string;
+  status: string;
+  created_at: string;
 }
 
 export interface Subscription {
