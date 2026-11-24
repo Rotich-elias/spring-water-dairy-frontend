@@ -18,7 +18,9 @@ import {
   createSellerFarm,
   deleteSellerFarm,
   impersonateFarm,
+  resetFarmOwnerPassword,
   updateSellerFarm,
+  type OwnerPasswordReset,
   type SellerFarm,
   type SellerFarmCreated,
 } from "@/features/seller/api/seller";
@@ -27,9 +29,17 @@ import { useSellerStore } from "@/stores/seller";
 const { t } = useI18n();
 const seller = useSellerStore();
 
-const form = reactive({ name: "", slug: "", owner_email: "", plan_code: "" });
+const form = reactive({
+  name: "",
+  slug: "",
+  owner_email: "",
+  plan_code: "",
+  payment_reference: "",
+  payment_date: "",
+});
 const creating = ref(false);
 const createdFarm = ref<SellerFarmCreated | null>(null);
+const resetResult = ref<OwnerPasswordReset | null>(null);
 const notice = ref<string | null>(null);
 const error = ref<string | null>(null);
 const selectedPlan = reactive<Record<number, string>>({});
@@ -39,6 +49,12 @@ const reason = ref("");
 const working = ref(false);
 
 const activePlans = computed(() => seller.plans.filter((plan) => plan.is_active));
+const selectedStartingPlan = computed(
+  () => seller.plans.find((plan) => plan.code === form.plan_code) ?? null,
+);
+const startingPlanIsPaid = computed(
+  () => Number(selectedStartingPlan.value?.price_monthly ?? 0) > 0,
+);
 
 function syncPlanSelections(): void {
   for (const farm of seller.farms) {
@@ -84,18 +100,30 @@ async function createFarm(): Promise<void> {
   notice.value = null;
   error.value = null;
   createdFarm.value = null;
+  resetResult.value = null;
   try {
     const result = await createSellerFarm({
       name: form.name.trim(),
       slug: form.slug.trim() || undefined,
       owner_email: form.owner_email.trim(),
       plan_code: form.plan_code || undefined,
+      ...(startingPlanIsPaid.value
+        ? {
+            payment_reference: form.payment_reference.trim(),
+            payment_date: form.payment_date,
+          }
+        : {}),
     });
     createdFarm.value = result;
-    notice.value = "seller.farms.created";
+    notice.value = result.existing_owner
+      ? "seller.farms.created_existing"
+      : "seller.farms.created";
     form.name = "";
     form.slug = "";
     form.owner_email = "";
+    form.plan_code = "";
+    form.payment_reference = "";
+    form.payment_date = "";
     await seller.loadFarms();
     syncPlanSelections();
   } catch (e: unknown) {
@@ -105,14 +133,39 @@ async function createFarm(): Promise<void> {
   }
 }
 
-async function copyPassword(): Promise<void> {
-  const password = createdFarm.value?.temporary_password;
-  if (!password) return;
+async function copySecret(secret: string | null | undefined): Promise<void> {
+  if (!secret) return;
   try {
-    await navigator.clipboard.writeText(password);
+    await navigator.clipboard.writeText(secret);
     notice.value = "seller.farms.copied";
   } catch {
     error.value = t("errors.unexpected");
+  }
+}
+
+function copyCreatedPassword(): Promise<void> {
+  return copySecret(createdFarm.value?.temporary_password);
+}
+
+function copyResetPassword(): Promise<void> {
+  return copySecret(resetResult.value?.temporary_password);
+}
+
+async function resetOwnerPassword(farm: SellerFarm): Promise<void> {
+  const owner = farm.owner_email || `#${farm.owner_id}`;
+  if (!window.confirm(t("seller.farms.reset_confirm", { owner }))) return;
+
+  working.value = true;
+  notice.value = null;
+  error.value = null;
+  resetResult.value = null;
+  try {
+    resetResult.value = await resetFarmOwnerPassword(farm.id);
+    notice.value = "seller.farms.password_reset";
+  } catch (e: unknown) {
+    error.value = getErrorMessage(e, t("seller.farms.reset_error"));
+  } finally {
+    working.value = false;
   }
 }
 
@@ -257,7 +310,32 @@ onMounted(async () => {
             </option>
           </select>
         </div>
+        <div v-if="startingPlanIsPaid">
+          <label class="label" for="farm-payment-reference">
+            {{ t("seller.farms.payment_reference") }}
+          </label>
+          <input
+            id="farm-payment-reference"
+            v-model="form.payment_reference"
+            class="input"
+            :required="startingPlanIsPaid"
+            :placeholder="t('seller.farms.payment_reference_placeholder')"
+          />
+        </div>
+        <div v-if="startingPlanIsPaid">
+          <label class="label" for="farm-payment-date">{{ t("seller.farms.payment_date") }}</label>
+          <input
+            id="farm-payment-date"
+            v-model="form.payment_date"
+            type="date"
+            class="input"
+            :required="startingPlanIsPaid"
+          />
+        </div>
       </div>
+      <p v-if="startingPlanIsPaid" class="mt-3 text-xs text-slate-500">
+        {{ t("seller.farms.paid_plan_notice") }}
+      </p>
       <div class="mt-5 flex justify-end">
         <button type="submit" class="btn-primary btn-sm" :disabled="creating">
           <Loader2 v-if="creating" :size="15" class="animate-spin" />
@@ -270,7 +348,12 @@ onMounted(async () => {
     <div v-if="createdFarm" class="alert-warning" role="status">
       <div class="flex-1">
         <p class="font-semibold">
-          {{ t("seller.farms.created") }} — {{ createdFarm.name }}
+          {{ t(createdFarm.existing_owner ? "seller.farms.created_existing" : "seller.farms.created") }}
+          — {{ createdFarm.name }}
+        </p>
+        <p class="mt-1 text-xs">
+          {{ t("seller.farms.owner_email") }}:
+          <span class="font-semibold">{{ createdFarm.owner_email }}</span>
         </p>
         <p v-if="createdFarm.temporary_password" class="mt-1 text-xs">
           {{ t("seller.farms.temp_password") }}:
@@ -281,8 +364,24 @@ onMounted(async () => {
         v-if="createdFarm.temporary_password"
         type="button"
         class="btn-outline btn-sm"
-        @click="copyPassword"
+        @click="copyCreatedPassword"
       >
+        <Copy :size="14" />
+        {{ t("seller.farms.copy") }}
+      </button>
+    </div>
+
+    <div v-if="resetResult" class="alert-warning" role="status">
+      <div class="flex-1">
+        <p class="font-semibold">
+          {{ t("seller.farms.password_reset_for", { owner: resetResult.owner_email }) }}
+        </p>
+        <p class="mt-1 text-xs">
+          {{ t("seller.farms.temp_password") }}:
+          <code class="rounded bg-white/70 px-1.5 py-0.5 font-bold">{{ resetResult.temporary_password }}</code>
+        </p>
+      </div>
+      <button type="button" class="btn-outline btn-sm" @click="copyResetPassword">
         <Copy :size="14" />
         {{ t("seller.farms.copy") }}
       </button>
@@ -389,6 +488,14 @@ onMounted(async () => {
                       @click="cancelSubscription(farm)"
                     >
                       {{ t("seller.farms.cancel_subscription") }}
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-ghost btn-sm"
+                      :disabled="working"
+                      @click="resetOwnerPassword(farm)"
+                    >
+                      {{ t("seller.farms.reset_password") }}
                     </button>
                     <button type="button" class="btn-primary btn-sm" @click="openImpersonation(farm)">
                       <ExternalLink :size="13" />

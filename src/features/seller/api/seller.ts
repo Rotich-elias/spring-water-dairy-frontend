@@ -44,7 +44,16 @@ export interface SellerFarmCreated {
   slug: string;
   status: string;
   owner_id?: number;
-  temporary_password?: string;
+  owner_email?: string;
+  existing_owner?: boolean;
+  temporary_password: string | null;
+}
+
+export interface OwnerPasswordReset {
+  owner_id: number;
+  owner_email: string;
+  temporary_password: string;
+  reset_at: string;
 }
 
 export interface SellerImpersonation {
@@ -130,6 +139,8 @@ export function createSellerFarm(payload: {
   slug?: string;
   owner_email: string;
   plan_code?: string;
+  payment_reference?: string;
+  payment_date?: string;
 }): Promise<SellerFarmCreated> {
   return api.post("/seller/farms", payload).then((r) => unwrap<SellerFarmCreated>(r.data));
 }
@@ -151,6 +162,12 @@ export function changeFarmPlan(id: number, plan_code: string): Promise<unknown> 
 
 export function cancelFarmSubscription(id: number): Promise<unknown> {
   return api.post(`/seller/farms/${id}/subscription/cancel`).then((r) => r.data);
+}
+
+export function resetFarmOwnerPassword(id: number): Promise<OwnerPasswordReset> {
+  return api
+    .post(`/seller/farms/${id}/owner/reset-password`)
+    .then((r) => unwrap<OwnerPasswordReset>(r.data));
 }
 
 export function impersonateFarm(
