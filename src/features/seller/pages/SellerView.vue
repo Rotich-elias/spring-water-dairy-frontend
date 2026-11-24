@@ -8,6 +8,7 @@ import {
   FileText,
   Inbox,
   LayoutDashboard,
+  ReceiptText,
   RefreshCw,
   Settings2,
 } from "lucide-vue-next";
@@ -16,6 +17,7 @@ import SellerOverview from "@/features/seller/components/SellerOverview.vue";
 import SellerSiteForm from "@/features/seller/components/SellerSiteForm.vue";
 import SellerContentForm from "@/features/seller/components/SellerContentForm.vue";
 import SellerPlans from "@/features/seller/components/SellerPlans.vue";
+import SellerPlanRequests from "@/features/seller/components/SellerPlanRequests.vue";
 import SellerFarms from "@/features/seller/components/SellerFarms.vue";
 import SellerInquiries from "@/features/seller/components/SellerInquiries.vue";
 
@@ -27,6 +29,7 @@ const tabs = [
   { id: "site", labelKey: "seller.tabs.site", icon: Settings2 },
   { id: "content", labelKey: "seller.tabs.content", icon: FileText },
   { id: "plans", labelKey: "seller.tabs.plans", icon: CreditCard },
+  { id: "plan_requests", labelKey: "seller.tabs.plan_requests", icon: ReceiptText },
   { id: "farms", labelKey: "seller.tabs.farms", icon: Building2 },
   { id: "inquiries", labelKey: "seller.tabs.inquiries", icon: Inbox },
 ];
@@ -90,6 +93,7 @@ onMounted(() => {
     <SellerSiteForm v-else-if="activeTab === 'site'" />
     <SellerContentForm v-else-if="activeTab === 'content'" />
     <SellerPlans v-else-if="activeTab === 'plans'" />
+    <SellerPlanRequests v-else-if="activeTab === 'plan_requests'" />
     <SellerFarms v-else-if="activeTab === 'farms'" />
     <SellerInquiries v-else />
   </div>

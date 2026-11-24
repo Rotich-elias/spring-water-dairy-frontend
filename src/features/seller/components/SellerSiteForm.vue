@@ -30,6 +30,15 @@ const brandFields: TextField[] = [
   { key: "powered_by_label", labelKey: "seller.site.powered_by_label", wide: true },
 ];
 
+const billingFields: TextField[] = [
+  {
+    key: "invoice_payment_instructions",
+    labelKey: "seller.site.invoice_payment_instructions",
+    type: "textarea",
+    wide: true,
+  },
+];
+
 const form = reactive<Record<string, string>>({});
 const saving = ref(false);
 const saved = ref(false);
@@ -41,7 +50,7 @@ function textOf(value: unknown): string {
 onMounted(async () => {
   await seller.loadSite();
   const source = seller.site as Record<string, unknown>;
-  for (const field of [...businessFields, ...brandFields]) {
+  for (const field of [...businessFields, ...brandFields, ...billingFields]) {
     form[field.key] = textOf(source[field.key]);
   }
 });
@@ -104,6 +113,23 @@ async function save(): Promise<void> {
             :type="field.type ?? 'text'"
             class="input"
           />
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="mt-8 space-y-5 border-t border-slate-100 pt-6">
+      <legend class="mb-4 text-sm font-semibold text-slate-900">
+        {{ t("seller.site.billing_section") }}
+      </legend>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div v-for="field in billingFields" :key="field.key" :class="field.wide ? 'sm:col-span-2' : ''">
+          <label class="label" :for="`site-${field.key}`">{{ t(field.labelKey) }}</label>
+          <textarea
+            :id="`site-${field.key}`"
+            v-model="form[field.key]"
+            class="input min-h-[90px] resize-y"
+            rows="3"
+          ></textarea>
         </div>
       </div>
     </fieldset>

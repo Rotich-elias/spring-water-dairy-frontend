@@ -81,7 +81,6 @@ export interface Plan {
   name: string;
   description: string;
   price_monthly: number;
-  provider_price_id?: string | null;
   limits: Record<string, number | null>;
   is_active: boolean;
   sort_order?: number;
@@ -135,36 +134,35 @@ export interface Subscription {
   current_period_end?: string | null;
   canceled_at?: string | null;
   payment_status?: string;
-  provider?: string | null;
-  provider_customer_id?: string | null;
-  provider_subscription_id?: string | null;
   last_payment_at?: string | null;
   created_at?: string;
 }
 
-export interface CheckoutSession {
+/** Manual, Platform Admin-approved paid-plan request. */
+export interface PlanChangeRequest {
   id: number;
-  provider: string;
+  tenant_id: number;
+  tenant_name: string;
   plan_code: string;
-  plan_name?: string | null;
-  status: string;
+  plan_name: string;
+  current_plan_code?: string | null;
+  current_plan_name?: string | null;
+  requester_name?: string | null;
+  status: "pending" | "invoiced" | "paid" | "approved" | "rejected" | "cancelled";
   amount: number;
   currency: string;
-  reference: string;
-  authorization_url: string;
-  expires_at?: string | null;
-  completed_at?: string | null;
+  note?: string | null;
+  invoice_number?: string | null;
+  invoiced_at?: string | null;
+  payment_reference?: string | null;
+  payment_date?: string | null;
+  rejection_reason?: string | null;
+  rejected_at?: string | null;
+  approver_name?: string | null;
+  approved_at?: string | null;
+  canceled_at?: string | null;
   created_at?: string | null;
-}
-
-export interface Payment {
-  id: number;
-  provider: string;
-  status: string;
-  amount: number;
-  currency: string;
-  paid_at?: string | null;
-  receipt_url?: string | null;
+  updated_at?: string | null;
 }
 
 export interface BillingSummary {
@@ -174,6 +172,5 @@ export interface BillingSummary {
   limits: Record<string, number | null>;
   usage: Record<string, number>;
   can_create: Record<string, boolean>;
-  pending_checkout: CheckoutSession | null;
-  last_payment: Payment | null;
+  plan_request: PlanChangeRequest | null;
 }

@@ -1,4 +1,10 @@
-import { api, type ContactInquiry, type Plan, type SiteInfoPayload } from "@/api";
+import {
+  api,
+  type ContactInquiry,
+  type Plan,
+  type PlanChangeRequest,
+  type SiteInfoPayload,
+} from "@/api";
 
 export interface SellerDashboard {
   farms: number;
@@ -65,7 +71,6 @@ export type PlanInput = Pick<
   | "name"
   | "description"
   | "price_monthly"
-  | "provider_price_id"
   | "limits"
   | "is_active"
   | "sort_order"
@@ -183,4 +188,37 @@ export function updateInquiry(id: number, status: string): Promise<SellerInquiry
 
 export function deleteInquiry(id: number): Promise<unknown> {
   return api.delete(`/seller/inquiries/${id}`).then((r) => r.data);
+}
+
+export function getSellerPlanRequests(status?: string): Promise<PlanChangeRequest[]> {
+  return api
+    .get("/seller/plan-requests", { params: status ? { status } : {} })
+    .then((r) => unwrap<PlanChangeRequest[]>(r.data) ?? []);
+}
+
+export function issuePlanRequestInvoice(id: number): Promise<PlanChangeRequest> {
+  return api
+    .post(`/seller/plan-requests/${id}/invoice`)
+    .then((r) => unwrap<PlanChangeRequest>(r.data));
+}
+
+export function markPlanRequestPaid(
+  id: number,
+  payload: { payment_reference: string; payment_date: string },
+): Promise<PlanChangeRequest> {
+  return api
+    .post(`/seller/plan-requests/${id}/paid`, payload)
+    .then((r) => unwrap<PlanChangeRequest>(r.data));
+}
+
+export function approvePlanRequest(id: number): Promise<PlanChangeRequest> {
+  return api
+    .post(`/seller/plan-requests/${id}/approve`)
+    .then((r) => unwrap<PlanChangeRequest>(r.data));
+}
+
+export function rejectPlanRequest(id: number, reason: string): Promise<PlanChangeRequest> {
+  return api
+    .post(`/seller/plan-requests/${id}/reject`, { reason })
+    .then((r) => unwrap<PlanChangeRequest>(r.data));
 }

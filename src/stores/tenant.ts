@@ -3,7 +3,6 @@ import { ref } from "vue";
 import {
   api,
   type BillingSummary,
-  type CheckoutSession,
   type Plan,
   type Tenant,
 } from "@/api";
@@ -134,18 +133,34 @@ export const useTenantStore = defineStore("tenant", () => {
     }
   }
 
-  async function startCheckout(code: string): Promise<CheckoutSession | null> {
+  async function requestPlan(code: string, note?: string): Promise<boolean> {
     saving.value = true;
     error.value = "";
     try {
-      const response = await api.post<{ data: CheckoutSession }>(
-        "/billing/checkout",
-        { plan_code: code },
-      );
-      return response.data.data;
+      await api.post("/billing/plan-requests", {
+        plan_code: code,
+        note: note?.trim() ? note.trim() : undefined,
+      });
+      await loadBilling();
+      return true;
     } catch (e) {
       error.value = apiMessage(e);
-      return null;
+      return false;
+    } finally {
+      saving.value = false;
+    }
+  }
+
+  async function cancelPlanRequest(id: number): Promise<boolean> {
+    saving.value = true;
+    error.value = "";
+    try {
+      await api.delete(`/billing/plan-requests/${id}`);
+      await loadBilling();
+      return true;
+    } catch (e) {
+      error.value = apiMessage(e);
+      return false;
     } finally {
       saving.value = false;
     }
@@ -205,7 +220,8 @@ export const useTenantStore = defineStore("tenant", () => {
     loadPlans,
     switchTo,
     create,
-    startCheckout,
+    requestPlan,
+    cancelPlanRequest,
     subscribe,
     cancel,
   };

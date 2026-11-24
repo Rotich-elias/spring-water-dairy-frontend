@@ -8,6 +8,7 @@ import {
   TENANT_KEY,
   TOKEN_KEY,
   type Plan,
+  type PlanChangeRequest,
   type SiteInfoPayload,
 } from "@/api";
 import {
@@ -16,6 +17,7 @@ import {
   getInquiries,
   getSellerDashboard,
   getSellerFarms,
+  getSellerPlanRequests,
   getSellerPlans,
   getSellerSite,
   patchSellerSite,
@@ -38,6 +40,7 @@ export const useSellerStore = defineStore("seller", () => {
   const dashboard = ref<SellerDashboard | null>(null);
   const site = ref<SiteInfoPayload>({});
   const plans = ref<Plan[]>([]);
+  const planRequests = ref<PlanChangeRequest[]>([]);
   const farms = ref<SellerFarm[]>([]);
   const inquiries = ref<SellerInquiry[]>([]);
   const impersonations = ref<SellerImpersonation[]>([]);
@@ -55,6 +58,7 @@ export const useSellerStore = defineStore("seller", () => {
       loadDashboard(),
       loadSite(),
       loadPlans(),
+      loadPlanRequests(),
       loadFarms(),
       loadInquiries(),
       loadImpersonations(),
@@ -81,6 +85,14 @@ export const useSellerStore = defineStore("seller", () => {
   async function loadPlans(): Promise<void> {
     try {
       plans.value = await getSellerPlans();
+    } catch (e: unknown) {
+      fail(e);
+    }
+  }
+
+  async function loadPlanRequests(status?: string): Promise<void> {
+    try {
+      planRequests.value = await getSellerPlanRequests(status);
     } catch (e: unknown) {
       fail(e);
     }
@@ -176,6 +188,7 @@ export const useSellerStore = defineStore("seller", () => {
     dashboard,
     site,
     plans,
+    planRequests,
     farms,
     inquiries,
     impersonations,
@@ -185,6 +198,7 @@ export const useSellerStore = defineStore("seller", () => {
     loadDashboard,
     loadSite,
     loadPlans,
+    loadPlanRequests,
     loadFarms,
     loadInquiries,
     loadImpersonations,

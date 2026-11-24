@@ -18,7 +18,6 @@ interface PlanForm {
   name: string;
   description: string;
   price_monthly: string;
-  provider_price_id: string;
   sort_order: string;
   is_active: boolean;
   animals: string;
@@ -33,7 +32,6 @@ function blankForm(): PlanForm {
     name: "",
     description: "",
     price_monthly: "0",
-    provider_price_id: "",
     sort_order: "0",
     is_active: true,
     animals: "",
@@ -98,7 +96,6 @@ function openEdit(plan: Plan): void {
     name: asText(plan.name),
     description: asText(plan.description),
     price_monthly: asText(plan.price_monthly ?? 0),
-    provider_price_id: asText(plan.provider_price_id),
     sort_order: asText(plan.sort_order ?? 0),
     is_active: plan.is_active !== false,
     animals: limitText(plan, "animals"),
@@ -154,7 +151,6 @@ async function save(): Promise<void> {
     name: asText(form.name).trim(),
     description: asText(form.description).trim(),
     price_monthly: price,
-    provider_price_id: asText(form.provider_price_id).trim() || null,
     sort_order: sortOrder,
     is_active: form.is_active,
     limits,
@@ -252,15 +248,6 @@ onMounted(() => {
           <input id="plan-price" v-model="form.price_monthly" type="number" min="0" class="input" />
         </div>
         <div>
-          <label class="label" for="plan-provider-price">{{ t("seller.plans.provider_price_id") }}</label>
-          <input
-            id="plan-provider-price"
-            v-model="form.provider_price_id"
-            class="input"
-            :placeholder="t('seller.plans.provider_price_hint')"
-          />
-        </div>
-        <div>
           <label class="label" for="plan-sort">{{ t("seller.plans.sort_order") }}</label>
           <input id="plan-sort" v-model="form.sort_order" type="number" class="input" />
         </div>
@@ -323,9 +310,6 @@ onMounted(() => {
               </td>
               <td>
                 <code class="rounded bg-slate-100 px-1.5 py-0.5 text-xs">{{ plan.code }}</code>
-                <p v-if="plan.provider_price_id" class="mt-1 text-xs text-slate-500">
-                  {{ plan.provider_price_id }}
-                </p>
               </td>
               <td class="whitespace-nowrap font-medium">
                 KES {{ Number(plan.price_monthly).toLocaleString("en-KE") }}
