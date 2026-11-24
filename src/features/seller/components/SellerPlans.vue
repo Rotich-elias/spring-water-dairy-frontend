@@ -81,24 +81,27 @@ function openNew(): void {
   showForm.value = true;
 }
 
+function asText(value: unknown): string {
+  return value === null || value === undefined ? "" : String(value);
+}
+
+function limitText(plan: Plan, key: string): string {
+  const value = plan.limits?.[key];
+  return value === null || value === undefined ? "" : String(value);
+}
+
 function openEdit(plan: Plan): void {
   Object.assign(form, {
-    code: plan.code,
-    name: plan.name,
-    description: plan.description ?? "",
-    price_monthly: String(plan.price_monthly ?? 0),
-    sort_order: String(plan.sort_order ?? 0),
+    code: asText(plan.code),
+    name: asText(plan.name),
+    description: asText(plan.description),
+    price_monthly: asText(plan.price_monthly ?? 0),
+    sort_order: asText(plan.sort_order ?? 0),
     is_active: plan.is_active !== false,
-    animals: plan.limits?.animals === null || plan.limits?.animals === undefined ? "" : String(plan.limits.animals),
-    users: plan.limits?.users === null || plan.limits?.users === undefined ? "" : String(plan.limits.users),
-    milk_records_per_month:
-      plan.limits?.milk_records_per_month === null || plan.limits?.milk_records_per_month === undefined
-        ? ""
-        : String(plan.limits.milk_records_per_month),
-    alert_rules:
-      plan.limits?.alert_rules === null || plan.limits?.alert_rules === undefined
-        ? ""
-        : String(plan.limits.alert_rules),
+    animals: limitText(plan, "animals"),
+    users: limitText(plan, "users"),
+    milk_records_per_month: limitText(plan, "milk_records_per_month"),
+    alert_rules: limitText(plan, "alert_rules"),
   });
   editingId.value = plan.id;
   notice.value = null;
@@ -106,26 +109,35 @@ function openEdit(plan: Plan): void {
   showForm.value = true;
 }
 
-function toLimit(raw: string): number | null {
-  const trimmed = raw.trim();
+// Vue casts v-model on number inputs to numbers, so submitted values can be
+// either strings or numbers depending on how the user reached the field.
+function toLimit(raw: unknown): number | null {
+  const trimmed = asText(raw).trim();
   if (!trimmed) return null;
   const value = Number(trimmed);
-  return Number.isFinite(value) ? value : NaN;
+  return Number.isFinite(value) && value >= 0 ? value : NaN;
 }
 
 async function save(): Promise<void> {
   const price = Number(form.price_monthly);
   const sortOrder = Number(form.sort_order);
-  const limits: Record<string, number | null> = {
-    animals: toLimit(form.animals),
-    users: toLimit(form.users),
-    milk_records_per_month: toLimit(form.milk_records_per_month),
-    alert_rules: toLimit(form.alert_rules),
-  };
+
+  // Keep limits the form does not expose (for example `milk_records`) instead
+  // of silently dropping them when a plan is edited.
+  const editingPlan =
+    editingId.value === null
+      ? null
+      : seller.plans.find((plan) => plan.id === editingId.value) ?? null;
+  const limits: Record<string, number | null> = { ...(editingPlan?.limits ?? {}) };
+  for (const key of LIMIT_KEYS) {
+    limits[key] = toLimit(form[key]);
+  }
+
   if (
     !Number.isFinite(price) ||
+    price < 0 ||
     !Number.isFinite(sortOrder) ||
-    Object.values(limits).some((value) => Number.isNaN(value))
+    Object.values(limits).some((value) => value !== null && (!Number.isFinite(value) || value < 0))
   ) {
     error.value = t("seller.plans.limit_invalid");
     return;
@@ -135,9 +147,9 @@ async function save(): Promise<void> {
   error.value = null;
   notice.value = null;
   const payload = {
-    code: form.code.trim(),
-    name: form.name.trim(),
-    description: form.description.trim(),
+    code: asText(form.code).trim(),
+    name: asText(form.name).trim(),
+    description: asText(form.description).trim(),
     price_monthly: price,
     sort_order: sortOrder,
     is_active: form.is_active,
